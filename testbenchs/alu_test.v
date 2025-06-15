@@ -2,7 +2,7 @@
 /////////////////////////////
 
 module ALU_TEST ();
-// Entradas
+  // Entradas
   reg [31:0] a;
   reg [31:0] b;
   reg [3:0] alu_control;
