@@ -12,9 +12,9 @@ module ALU_TEST ();
 
   // Instancia de la ALU
   ALU dut (
-    .a(a),
-    .b(b),
-    .alu_control(alu_control),
+    .data_a(a),
+    .data_b(b),
+    .operation(alu_control),
     .result(result)
   );
 
