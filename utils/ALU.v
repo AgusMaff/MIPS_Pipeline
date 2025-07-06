@@ -39,7 +39,9 @@ module ALU # (
       ALU_XOR:       alu_result = data_a ^ data_b;
       ALU_SLL:       alu_result = data_b << data_a[4:0]; 
       ALU_SRL:       alu_result = data_b >> data_a[4:0]; 
-      ALU_SRA:       alu_result = $signed(data_b) >>> data_a[4:0];         
+      ALU_SRA:       alu_result = $signed(data_b) >>> data_a[4:0]; 
+      ALU_LUI:       alu_result = {data_b[15:0], 16'b0};
+      ALU_BYPASS_A:  alu_result = data_a;        
       default: alu_result = 0; // Por defecto suma (unsigned)
     endcase
     
