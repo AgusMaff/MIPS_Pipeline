@@ -1,16 +1,15 @@
 `timescale 1ns / 1ps
 
-module hazard_unit 
+module HAZARD_UNIT 
 (
     input        branch,
-    input [4:0]  rs_id ,
-    input [4:0]  rt_id ,
-    input [4:0]  rt_ex ,
-    input [4:0]  rd_ex ,
-    input [4:0]  rd_mem,
-    input        mem_read_ex,  //load operations   |memread_e writereg_m  regwrite_E  memread_m
-    input        regwrite_ex,  //writereg_e
-    input        memtor
+    input [4:0]  if_id_rs,
+    input [4:0]  if_id_rt,
+    input [4:0]  id_ex_rt,
+    input [4:0]  ex_m_rd,
+    input        id_ex_mem_read,  //load operations   |memread_e writereg_m  regwrite_E  memread_m
+    input        id_ex_regwrite,  //writereg_e
+    input        ex_m_memtoreg,
     output       flush_idex,
     output       stall
 );
@@ -20,13 +19,13 @@ reg reg_flush;
 reg reg_stall;
 always @(*) begin
     //read load data hazard
-    if((mem_read_ex) && ((rs_id == rt_ex) || (rt_id == rt_ex)))
+    if((id_ex_mem_read) && ((if_id_rs == id_ex_rt) || (if_id_rt == id_ex_rt)))
     begin
         reg_flush = 1'b1;
         reg_stall = 1'b1;
     end
 
-    else if(branch && ((regwrite_ex && (rd_ex != 5'b00000) && ((rd_ex == rs_id) || (rd_ex == rt_id))) || (memtoreg_m && (rd_mem != 5'b00000) && ((rd_mem == rs_id) || (rd_mem == rt_id)))))
+    else if(branch && ((id_ex_regwrite && (ex_m_rd != 5'b00000) && ((ex_m_rd == if_id_rs) || (ex_m_rd == if_id_rt))) || (ex_m_memtoreg && (ex_m_rd != 5'b00000) && ((ex_m_rd == if_id_rs) || (ex_m_rd == if_id_rt)))))
         begin
             reg_flush = 1'b1;
             reg_stall = 1'b1;
@@ -38,8 +37,8 @@ always @(*) begin
     
 end
 
-assign o_flush_idex = reg_flush;
-assign o_stall      = reg_stall;
+assign flush_idex = reg_flush;
+assign stall      = reg_stall;
 
     
 endmodule

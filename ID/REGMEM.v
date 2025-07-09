@@ -6,7 +6,7 @@ module REGMEM (
     input  wire [4:0]  rs,     
     input  wire [4:0]  rt,      
     input  wire [31:0] write_data,
-    input  wire [4:0] reg_addr,
+    input  wire [4:0]  reg_addr,
     input  wire        write_enable,
     output wire [31:0] data_1,
     output wire [31:0] data_2

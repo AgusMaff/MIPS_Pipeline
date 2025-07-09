@@ -56,7 +56,7 @@ module IF(
     ALU addr4 (
         .data_a(pc_to_instmem),     // PC actual
         .data_b(32'd4),             // Valor a sumar (4 en 32 bits)
-        .operation(4'b0011),        // Operación de suma
+        .operation(6'b100001),        // Operación de suma
         .result(o_pc_plus_4)        // Resultado de la suma (PC + 4)
     );
 
