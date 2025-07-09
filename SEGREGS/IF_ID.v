@@ -13,8 +13,8 @@ module IF_ID (
     output reg  [4:0]  id_rt,
     output reg  [4:0]  id_rd,
     output reg  [15:0] id_beq_offset,
-    output reg  [4:0]  id_opcode,
-    output reg  [4:0]  id_function_code
+    output reg  [5:0]  id_opcode,
+    output reg  [5:0]  id_function_code
 );
 
     always @(posedge clk or posedge reset) begin

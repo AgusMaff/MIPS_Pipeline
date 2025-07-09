@@ -9,6 +9,7 @@ module ID_EX (
     input  wire [4:0]  id_rt,
     input  wire [4:0]  id_rd,
     input  wire [31:0] id_extended_beq_offset,
+    input  wire [5:0]  id_function_code,
     input  wire        id_ex_reg_dst,
     input  wire        id_ex_alu_src,
     input  wire [3:0]  id_ex_alu_op,
@@ -22,10 +23,11 @@ module ID_EX (
     output reg [4:0]  ex_rs,
     output reg [4:0]  ex_rt,
     output reg [4:0]  ex_rd,
+    output reg [5:0]  ex_function_code,
     output reg [31:0] ex_extended_beq_offset,
     output reg        ex_reg_dst,
     output reg        ex_alu_src,
-    output reg [2:0]  ex_alu_op,
+    output reg [3:0]  ex_alu_op,
     output reg        ex_m_mem_read,
     output reg        ex_m_mem_write,
     output reg        ex_wb_mem_to_reg,
@@ -39,6 +41,7 @@ module ID_EX (
             ex_rs <= 5'b0;
             ex_rt <= 5'b0;
             ex_rd <= 5'b0;
+            ex_function_code <= 6'b0;
             ex_extended_beq_offset <= 32'b0;
             ex_reg_dst <= 1'b0;
             ex_alu_src <= 1'b0;
@@ -53,6 +56,7 @@ module ID_EX (
             ex_rs <= id_rs;
             ex_rt <= id_rt;
             ex_rd <= id_rd;
+            ex_function_code <= id_function_code;
             ex_extended_beq_offset <= id_extended_beq_offset;
             ex_reg_dst <= id_ex_reg_dst;
             ex_alu_src <= id_ex_alu_src;

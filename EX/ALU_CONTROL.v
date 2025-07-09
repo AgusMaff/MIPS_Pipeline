@@ -19,7 +19,6 @@ module ALU_CONTROL(
             4'b1110: alu_control = 6'b101010; // SLTI
             4'b1111: alu_control = 6'b101011; // SLTIU
             4'b1101: alu_control = 6'b001111; // LUI (Load Upper Immediate)
-            4'b1100: alu_control =
             default: begin
                      alu_control = 6'b100000; // Default to ADD
             end

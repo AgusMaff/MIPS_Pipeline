@@ -15,7 +15,7 @@ module ID (
     input  wire [5:0]  i_function_code,
     input  wire        i_id_ex_reg_write,
     input  wire        i_id_ex_mem_read,
-    input  wire [31:0] i_ex_alu_result,
+    input  wire [31:0] i_ex_m_alu_result,
     input  wire [4:0]  i_ex_m_rd,
     input  wire [4:0]  i_id_ex_rt,
     input  wire        i_ex_m_reg_write,
@@ -27,7 +27,7 @@ module ID (
     output wire [4:0]  o_rs,
     output wire [4:0]  o_rt,
     output wire [4:0]  o_rd,
-    output wire [4:0]  o_function_code,
+    output wire [5:0]  o_function_code,
     output wire [31:0] o_extended_beq_offset,
     output wire [31:0] o_beq_jump_dir,
     output wire        o_reg_dest,
@@ -98,24 +98,24 @@ module ID (
     );
 
     FORWARDING_UNIT_ID forwarding_unit_id (
-        .rs_id(i_rs),
-        .rt_id(i_rt),
-        .rd_ex_m(i_ex_m_rd),
-        .reg_write_ex_m(i_ex_m_reg_write),
+        .if_id_rs(i_rs),
+        .if_id_rt(i_rt),
+        .ex_m_rd(i_ex_m_rd),
+        .ex_m_reg_write(i_ex_m_reg_write),
         .forward_a(forward_a),
         .forward_b(forward_b)
     );
 
     MUX2TO1 mux_forward_a (
         .input_1(data_1),
-        .input_2(i_ex_alu_result),
+        .input_2(i_ex_m_alu_result),
         .selection_bit(forward_a),
         .mux(o_data_1)
     );
 
     MUX2TO1 mux_forward_b (
         .input_1(data_2),
-        .input_2(i_ex_alu_result),
+        .input_2(i_ex_m_alu_result),
         .selection_bit(forward_b),
         .mux(o_data_2)
     );

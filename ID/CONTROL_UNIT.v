@@ -1,18 +1,18 @@
 `timescale 1ns / 1ps
 
 module CONTROL_UNIT (
-    input  wire       enable,        // Habilitación de unidad de control
-    input  wire [5:0] op_code,       // Código de operación de la instrucción
-    output reg       branch,         // Señal de ramificación
-    output reg       is_beq,         // Señal de BEQ
-    output reg       reg_dest,       // Señal de destino de registro
-    output reg       alu_src,        // Selección de fuente ALU
-    output reg [3:0] alu_op,         // Operación ALU
-    output reg       mem_read,       // Señal de lectura de memoria
-    output reg       mem_write,      // Señal de escritura en memoria
-    output reg       mem_to_reg,     // Señal de escritura de memoria a registro
-    output reg       reg_write,      // Señal de escritura en registro
-    output reg       jump            // Señal de salto
+    input  wire       enable,         // Habilitación de unidad de control
+    input  wire [5:0] op_code,        // Código de operación de la instrucción
+    output reg        branch,         // Señal de ramificación
+    output reg        is_beq,         // Señal de BEQ
+    output reg        reg_dest,       // Señal de destino de registro
+    output reg        alu_src,        // Selección de fuente ALU
+    output reg  [3:0] alu_op,         // Operación ALU
+    output reg        mem_read,       // Señal de lectura de memoria
+    output reg        mem_write,      // Señal de escritura en memoria
+    output reg        mem_to_reg,     // Señal de escritura de memoria a registro
+    output reg        reg_write,      // Señal de escritura en registro
+    output reg        jump            // Señal de salto
 );
 
     always @(*) begin
