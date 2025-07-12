@@ -44,7 +44,6 @@ module addi_test;
     wire id_ex_mem_to_reg; // Señal de escritura de registro desde memoria
     wire id_ex_reg_write; // Señal de escritura de registro
 
-
     //Etapa EX
     wire [31:0] ex_data_1; // Dato 1 de la etapa ID/EX
     wire [31:0] ex_data_2; // Dato 2 de la etapa ID/EX
@@ -59,7 +58,6 @@ module addi_test;
     wire ex_read; // Señal de lectura de memoria de la etapa ID/EX
     wire ex_write; // Señal de escritura de memoria de la etapa ID/EX
     wire ex_to_reg; // Señal de escritura de registro desde memoria de la etapa ID/EX
-    wire ex_write; // Señal de escritura de registro de la etapa ID/EX
 
     wire [4:0] ex_m_rd; // Registro destino rd de la etapa ID/EX
     wire [31:0] ex_m_alu_result; // Resultado de la ALU de la etapa ID/EX
@@ -78,10 +76,20 @@ module addi_test;
     wire m_mem_to_reg;
     wire m_reg_write;
 
+    wire [31:0] m_wb_read_data; // Datos leídos de memoria para la etapa WB
+    wire [4:0] m_wb_rd; // Registro destino para la etapa WB
+    wire [31:0] m_wb_alu_result; // Resultado de la ALU para la etapa WB
+    wire m_wb_mem_to_reg; // Señal de escritura de registro desde memoria para la etapa WB
+    wire m_wb_reg_write; // Señal de escritura de registro para la etapa WB
+
     // Etapa WB
     wire [31:0] wb_data; // Datos a escribir en el registro
+    wire [31:0] wb_write_data; // Datos a escribir en el registro
     wire [4:0] wb_rd; // Registro destino para la etapa WB
     wire wb_reg_write; // Señal de escritura de registro para la etapa WB
+    wire wb_mem_to_reg; // Señal de escritura de registro desde memoria para la etapa WB
+    wire [31:0] wb_alu_result; // Resultado de la ALU para la etapa WB
+
 
 
     IF if_stage (
@@ -105,8 +113,8 @@ module addi_test;
         .reset(i_reset),
         .if_pc_plus_4(if_id_pc_plus_4), // PC + 4 from IF stage (not connected)
         .if_instruction(if_id_instruction), // Instruction from IF stage (not connected)
-        .flush_idex(flush_idex), // No flush signal for now
         .stall(stall), // No stall signal for now
+        .flush(flush_idex), // Flush signal for ID/EX stage
 
         .id_pc_plus_4(id_pc_plus_4), // Output PC + 4 for ID stage (not connected)
         .id_rs(id_rs), // Output rs for ID stage (not connected)
@@ -123,7 +131,7 @@ module addi_test;
         .i_rs(id_rs), // rs input (not connected)
         .i_rt(id_rt), // rt input (not connected)
         .i_rd(id_rd), // rd input (not connected)
-        .i_data_write(wb_data), // Data to write in register file (not connected)
+        .i_data_write(wb_write_data), // Data to write in register file (not connected)
         .i_m_wb_rd(wb_rd), // Write back rd from MEM stage (not connected)
         .i_m_wb_reg_write(wb_reg_write), // Write back reg write signal from MEM stage (not connected)
         .i_pc_plus_4(id_pc_plus_4), // PC + 4 from IF_ID stage (not connected)
@@ -132,10 +140,11 @@ module addi_test;
         .i_function_code(id_function_code), // Function code from IF_ID stage (not connected)
         .i_id_ex_reg_write(ex_reg_write), // Reg write signal from EX stage (not connected)
         .i_id_ex_mem_read(ex_read), // Mem read signal from EX stage (not connected)
-        .i_ex_m_rd(m_rd), // rd from EX/MEM stage (not connected)
+        .i_ex_m_alu_result(ex_m_alu_result), // ALU result from EX/MEM stage (not connected)
+        .i_ex_m_rd(ex_m_rd), // rd from EX/MEM stage (not connected)
         .i_id_ex_rt(ex_rt), // rt from ID/EX stage (not connected)
-        .i_ex_m_reg_write(m_reg_write), // Reg write signal from EX/MEM stage (not connected)
-        .i_ex_m_memtoreg(m_mem_to_reg), // Mem to reg signal from EX/MEM stage (not connected)
+        .i_ex_m_reg_write(ex_m_reg_write), // Reg write signal from EX/MEM stage (not connected)
+        .i_ex_m_memtoreg(ex_m_mem_to_reg), // Mem to reg signal from EX/MEM stage (not connected)
 
         .o_pc_src(pcsrc), // Output pcsrc signal
         .o_data_1(id_ex_data_1), // Output data 1 for ID stage (not connected)
@@ -209,7 +218,7 @@ module addi_test;
         .i_id_ex_mem_write(ex_write), // Mem write signal from ID stage (not connected)
         .i_id_ex_mem_to_reg(ex_to_reg), // Mem to reg signal from ID stage (not connected)
         .i_id_ex_reg_write(ex_reg_write), // Reg write signal from ID stage (not connected)
-        .i_m_wb_data_write(wb_data), // Data to write in register file (not connected)
+        .i_m_wb_data_write(wb_write_data), // Data to write in register file (not connected)
         .i_ex_m_alu_result(m_alu_result), // ALU result from EX stage (not connected)
         .i_ex_m_reg_write(m_reg_write), // Reg write signal from EX stage (not connected)
         .i_ex_m_rd(m_rd), // rd from EX stage (not connected)
@@ -245,6 +254,49 @@ module addi_test;
         .o_ex_m_reg_write(m_reg_write) // Output reg write signal for MEM stage
     );
 
+    MEM mem_stage (
+        .i_clk(i_clk),
+        .i_reset(i_reset),
+        .i_mem_alu_result_or_addr(m_alu_result),
+        .i_mem_write_data(m_write_data),
+        .i_mem_rd(m_rd),
+        .i_m_mem_read(m_mem_read),
+        .i_m_mem_write(m_mem_write),
+        .i_m_mem_to_reg(m_mem_to_reg),
+        .i_m_reg_write(m_reg_write),
+
+        .o_m_wb_read_data(m_wb_read_data),
+        .o_m_rd(m_wb_rd),
+        .o_m_wb_alu_result(m_wb_alu_result),
+        .o_m_wb_mem_to_reg(m_wb_mem_to_reg),
+        .o_m_wb_reg_write(m_wb_reg_write)
+    );
+
+    M_WB m_wb_segmentation_register (
+        .i_clk(i_clk),
+        .i_reset(i_reset),
+        .i_m_read_data(m_wb_read_data),
+        .i_m_rd(m_wb_rd),
+        .i_m_alu_result(m_wb_alu_result),
+        .i_m_mem_to_reg(m_wb_mem_to_reg),
+        .i_m_reg_write(m_wb_reg_write),
+
+        .o_wb_data(wb_data),
+        .o_wb_rd(wb_rd),
+        .o_wb_mem_to_reg(wb_mem_to_reg),
+        .o_wb_reg_write(wb_reg_write),
+        .o_wb_alu_result(wb_alu_result)
+    );
+
+    WB wb_stage (
+        .i_wb_data(wb_data),
+        .i_wb_mem_to_reg(wb_mem_to_reg),
+        .i_wb_alu_result(wb_alu_result),
+        .i_wb_reg_write(wb_reg_write),
+        .i_wb_rd(wb_rd),
+
+        .o_wb_write_data(wb_write_data)
+    );
     // Generador de clock
     initial i_clk = 0;
     always #5 i_clk = ~i_clk;
@@ -261,33 +313,32 @@ module addi_test;
         i_reset = 0;
 
         // Cargar instrucción ADDI en la memoria de instrucciones
-        // addi $t1, $t0, 5  => opcode=001000, rs=01000, rt=01001, imm=0000_0000_0000_0101
-        // binario: 001000 01000 01001 0000 0000 0000 0101
-        // hex:     0x21090005
         @(negedge i_clk);
         i_du_write_en = 1;
         i_du_read_en = 0;
-        i_du_data = 32'h21090005;
+        i_du_data = 32'h21090005; // ADDI $t1, $t1, 5
         i_du_addr_wr = 0;
         @(negedge i_clk);
         i_du_write_en = 0;
         i_du_read_en = 1;
 
         // Esperar a que la instrucción pase por el pipeline
-        repeat(12) @(posedge i_clk);
+        repeat(16) @(posedge i_clk);
 
         $display("---- Registros Intermedios del Pipeline ----");
         $display("IF/ID: PC+4 = %h | INSTR = %h", if_id_pc_plus_4, if_id_instruction);
         $display("ID/EX: data_1 = %d | data_2 = %d | ext_imm = %d", id_ex_data_1, id_ex_data_2, id_ex_extended_beq_offset);
         $display("EX/MEM: alu_result = %d | write_data = %d | rd = %d", ex_m_alu_result, ex_m_write_data, ex_m_rd);
+        $display("MEM/WB: read_data = %d | alu_result = %d | rd = %d", m_wb_read_data, m_wb_alu_result, m_wb_rd);
+        $display("WB: wb_write_data = %d | wb_rd = %d | wb_reg_write = %b", wb_write_data, wb_rd, wb_reg_write);
 
         $finish;
     end
 
-    // Monitor para debug en cada ciclo (opcional, puedes comentarlo si solo quieres el display final)
+    // Monitor para debug en cada ciclo (opcional)
     initial begin
-        $monitor("t=%0dns | IF/ID: INSTR=%h | ID/EX: data_1=%d data_2=%d | EX/MEM: alu_result=%d",
-            $time, if_id_instruction, id_ex_data_1, id_ex_data_2, ex_m_alu_result);
+        $monitor("t=%0dns | IF/ID: INSTR=%h | ID/EX: data_1=%d data_2=%d | EX/MEM: alu_result=%d | WB: wb_data=%d",
+            $time, if_id_instruction, id_ex_data_1, id_ex_data_2, ex_m_alu_result, wb_write_data);
     end
 
 endmodule

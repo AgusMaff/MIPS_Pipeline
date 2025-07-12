@@ -14,7 +14,7 @@ module FORWARDING_UNIT_ID(
     always @(*) 
     begin
         //fordward for rs en ID from mem
-        if ((if_id_rs == ex_m_rd)&& ex_m_reg_write && (ex_m_rd != 5'b00000)) begin 
+        if ((if_id_rs == ex_m_rd) && ex_m_reg_write && (ex_m_rd != 5'b00000)) begin 
             a = 1'b1;
         end
         else begin

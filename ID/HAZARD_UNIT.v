@@ -21,14 +21,12 @@ always @(*) begin
     //read load data hazard
     if((id_ex_mem_read) && ((if_id_rs == id_ex_rt) || (if_id_rt == id_ex_rt)))
     begin
-        reg_flush = 1'b1;
         reg_stall = 1'b1;
     end
 
     else if(branch && ((id_ex_regwrite && (ex_m_rd != 5'b00000) && ((ex_m_rd == if_id_rs) || (ex_m_rd == if_id_rt))) || (ex_m_memtoreg && (ex_m_rd != 5'b00000) && ((ex_m_rd == if_id_rs) || (ex_m_rd == if_id_rt)))))
         begin
             reg_flush = 1'b1;
-            reg_stall = 1'b1;
         end
     else begin
         reg_flush = 1'b0;

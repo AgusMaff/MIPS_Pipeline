@@ -1,13 +1,14 @@
 `timescale 1ns / 1ps
 
-module PIPELINE (
-    input wire i_clk,
-    input wire i_reset,
-    input wire [31:0] i_du_data,
-    input wire [31:0] i_du_addr_wr,
-    input wire i_du_write_en,
-    input wire i_du_read_en
-);
+module andi_test;
+
+    reg i_clk;
+    reg i_reset;
+    reg [31:0] i_du_data;
+    reg [31:0] i_du_addr_wr;
+    reg i_du_write_en;
+    reg i_du_read_en;
+
     //Señales de control
     wire pcsrc; // Señal de selección de PC
     wire jump; // Señal de salto
@@ -112,8 +113,8 @@ module PIPELINE (
         .reset(i_reset),
         .if_pc_plus_4(if_id_pc_plus_4), // PC + 4 from IF stage (not connected)
         .if_instruction(if_id_instruction), // Instruction from IF stage (not connected)
-        .flush_idex(flush_idex), // No flush signal for now
         .stall(stall), // No stall signal for now
+        .flush(flush_idex), // Flush signal for ID/EX stage
 
         .id_pc_plus_4(id_pc_plus_4), // Output PC + 4 for ID stage (not connected)
         .id_rs(id_rs), // Output rs for ID stage (not connected)
@@ -139,11 +140,11 @@ module PIPELINE (
         .i_function_code(id_function_code), // Function code from IF_ID stage (not connected)
         .i_id_ex_reg_write(ex_reg_write), // Reg write signal from EX stage (not connected)
         .i_id_ex_mem_read(ex_read), // Mem read signal from EX stage (not connected)
-        .i_ex_m_alu_result(m_alu_result), // ALU result from EX/MEM stage (not connected)
-        .i_ex_m_rd(m_rd), // rd from EX/MEM stage (not connected)
+        .i_ex_m_alu_result(ex_m_alu_result), // ALU result from EX/MEM stage (not connected)
+        .i_ex_m_rd(ex_m_rd), // rd from EX/MEM stage (not connected)
         .i_id_ex_rt(ex_rt), // rt from ID/EX stage (not connected)
-        .i_ex_m_reg_write(m_reg_write), // Reg write signal from EX/MEM stage (not connected)
-        .i_ex_m_memtoreg(m_mem_to_reg), // Mem to reg signal from EX/MEM stage (not connected)
+        .i_ex_m_reg_write(ex_m_reg_write), // Reg write signal from EX/MEM stage (not connected)
+        .i_ex_m_memtoreg(ex_m_mem_to_reg), // Mem to reg signal from EX/MEM stage (not connected)
 
         .o_pc_src(pcsrc), // Output pcsrc signal
         .o_data_1(id_ex_data_1), // Output data 1 for ID stage (not connected)
@@ -296,5 +297,41 @@ module PIPELINE (
 
         .o_wb_write_data(wb_write_data)
     );
+
+    // Generador de clock
+    initial i_clk = 0;
+    always #5 i_clk = ~i_clk;
+
+    // Test sequence
+    initial begin
+        // Reset y señales iniciales
+        i_reset = 1;
+        i_du_write_en = 0;
+        i_du_read_en = 0;
+        i_du_data = 0;
+        i_du_addr_wr = 0;
+        #12;
+        i_reset = 0;
+
+        // Cargar instrucción ADDI en la memoria de instrucciones
+        @(negedge i_clk);
+        i_du_write_en = 1;
+        i_du_read_en = 0;
+        i_du_data = 32'b001001_00010_00011_0000000000000111; // ADDI $v0, $v1, 7
+        i_du_addr_wr = 0;
+        @(negedge i_clk);
+        i_du_write_en = 1;
+        i_du_read_en = 0;
+        i_du_data = 32'b001100_00011_00100_0000000000000001; // ANDI $v1, $a0, 1
+        i_du_addr_wr = 4;
+        @(negedge i_clk);
+        i_du_write_en = 0;
+        i_du_read_en = 1;
+
+        // Esperar a que la instrucción pase por el pipeline
+        repeat(16) @(posedge i_clk);
+
+        $finish;
+    end
 
 endmodule

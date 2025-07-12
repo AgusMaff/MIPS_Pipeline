@@ -1,106 +1,117 @@
 `timescale 1ns / 1ps
 
-module ex_addi_tb;
+module ex_test;
 
-    reg clk;
-    reg reset;
-    reg [31:0] id_ex_data_1;              // Primer operando (valor de $t0)
-    reg [31:0] id_ex_data_2;              // Segundo operando (no usado en addi)
-    reg [4:0]  id_ex_rs;
-    reg [4:0]  id_ex_rt;
-    reg [4:0]  id_ex_rd;
-    reg [5:0]  id_ex_function_code;
-    reg [31:0] id_ex_extended_beq_offset; // Inmediato extendido (5)
-    reg        id_ex_reg_dst;
-    reg        id_ex_alu_src;
-    reg [3:0]  id_ex_alu_op;
-    reg        id_ex_mem_read;
-    reg        id_ex_mem_write;
-    reg        id_ex_mem_to_reg;
-    reg        id_ex_reg_write;
-    reg [31:0] m_wb_data_write;
-    reg [31:0] ex_m_alu_result;
-    reg        ex_m_reg_write;
-    reg [4:0]  ex_m_rd;
-    reg        m_wb_reg_write;
-    reg [4:0]  m_wb_rd;
+    reg [31:0] i_id_ex_data_1;
+    reg [31:0] i_id_ex_data_2;
+    reg [4:0]  i_id_ex_rs;
+    reg [4:0]  i_id_ex_rt;
+    reg [4:0]  i_id_ex_rd;
+    reg [4:0]  i_ex_m_rd;
+    reg [4:0]  i_m_wb_rd;
+    reg        i_ex_m_reg_write;
+    reg        i_m_wb_reg_write;
+    reg [31:0] i_ex_m_alu_result;
+    reg [31:0] i_m_wb_data_write;
+    reg [31:0] i_id_ex_extended_beq_offset;
+    reg        i_id_ex_alu_src;
+    reg        i_id_ex_reg_dst;
+    reg [3:0]  i_id_ex_alu_op;
+    reg [4:0]  i_id_ex_function_code;
 
-    wire [31:0] ex_m_alu_result_out;
-    wire [31:0] ex_m_write_data_out;
-    wire [4:0]  ex_m_rd_out;
-    wire        ex_m_mem_read_out;
-    wire        ex_m_mem_write_out;
-    wire        ex_m_mem_to_reg_out;
-    wire        ex_m_reg_write_out;
+    wire [1:0] forward_a;
+    wire [1:0] forward_b;
+    wire [31:0] operando_a;
+    wire [31:0] data_2;
+    wire [31:0] operando_b;
+    wire [4:0]  o_ex_m_rd;
+    wire [5:0]  alu_control_signal;
+    wire [31:0] o_ex_m_alu_result;
 
-    // Instancia de la etapa EX
-    EX uut (
-        .i_clk(clk),
-        .i_reset(reset),
-        .i_id_ex_data_1(id_ex_data_1),
-        .i_id_ex_data_2(id_ex_data_2),
-        .i_id_ex_rs(id_ex_rs),
-        .i_id_ex_rt(id_ex_rt),
-        .i_id_ex_rd(id_ex_rd),
-        .i_id_ex_function_code(id_ex_function_code),
-        .i_id_ex_extended_beq_offset(id_ex_extended_beq_offset),
-        .i_id_ex_reg_dst(id_ex_reg_dst),
-        .i_id_ex_alu_src(id_ex_alu_src),
-        .i_id_ex_alu_op(id_ex_alu_op),
-        .i_id_ex_mem_read(id_ex_mem_read),
-        .i_id_ex_mem_write(id_ex_mem_write),
-        .i_id_ex_mem_to_reg(id_ex_mem_to_reg),
-        .i_id_ex_reg_write(id_ex_reg_write),
-        .i_m_wb_data_write(m_wb_data_write),
-        .i_ex_m_alu_result(ex_m_alu_result),
-        .i_ex_m_reg_write(ex_m_reg_write),
-        .i_ex_m_rd(ex_m_rd),
-        .i_m_wb_reg_write(m_wb_reg_write),
-        .i_m_wb_rd(m_wb_rd),
-        .o_ex_m_alu_result(ex_m_alu_result_out),
-        .o_ex_m_write_data(ex_m_write_data_out),
-        .o_ex_m_rd(ex_m_rd_out),
-        .o_ex_m_mem_read(ex_m_mem_read_out),
-        .o_ex_m_mem_write(ex_m_mem_write_out),
-        .o_ex_m_mem_to_reg(ex_m_mem_to_reg_out),
-        .o_ex_m_reg_write(ex_m_reg_write_out)
+    // Instancia de la unidad de redireccionamiento
+    FORWARDING_UNIT_EX forwarding_unit (
+        .id_ex_rs(i_id_ex_rs),
+        .id_ex_rt(i_id_ex_rt),
+        .ex_mem_rd(i_ex_m_rd),
+        .mem_wb_rd(i_m_wb_rd),
+        .ex_mem_reg_write(i_ex_m_reg_write),
+        .mem_wb_reg_write(i_m_wb_reg_write),
+        .forward_a(forward_a),
+        .forward_b(forward_b)
     );
 
-    // Clock
-    initial clk = 0;
-    always #5 clk = ~clk;
+    // Multiplexores para los operandos
+    MUX3TO1 mux_data_1 (
+        .input_1(i_id_ex_data_1),
+        .input_2(i_ex_m_alu_result), 
+        .input_3(i_m_wb_data_write),
+        .selection_bit(forward_a),
+        .mux(operando_a)
+    );
+
+    MUX3TO1 mux_data_2 (
+        .input_1(i_id_ex_data_2),
+        .input_2(i_ex_m_alu_result), 
+        .input_3(i_m_wb_data_write),
+        .selection_bit(forward_b),
+        .mux(data_2)
+    );
+
+    MUX2TO1 mux_alu_src (
+        .input_1(data_2),
+        .input_2(i_id_ex_extended_beq_offset),
+        .selection_bit(i_id_ex_alu_src),
+        .mux(operando_b)
+    );
+
+    MUX2TO1_EX mux_reg_dst (
+        .input_1(i_id_ex_rt),
+        .input_2(i_id_ex_rd),
+        .selection_bit(i_id_ex_reg_dst),
+        .mux(o_ex_m_rd)
+    );
+
+    ALU_CONTROL alu_control (
+        .alu_op(i_id_ex_alu_op),
+        .function_code(i_id_ex_function_code), 
+        .alu_control(alu_control_signal)
+    );
+
+    ALU alu_ex ( 
+        .data_a(operando_a),
+        .data_b(operando_b),
+        .operation(alu_control_signal),
+        .result(o_ex_m_alu_result)
+    );
 
     initial begin
-        // Inicialización
-        reset = 1;
-        id_ex_data_1 = 0; // $t0 = 0
-        id_ex_data_2 = 0;
-        id_ex_rs = 8;     // $t0
-        id_ex_rt = 9;     // $t1
-        id_ex_rd = 9;     // $t1
-        id_ex_function_code = 6'bxxxxxx; // No importa para ADDI
-        id_ex_extended_beq_offset = 5;   // Inmediato = 5
-        id_ex_reg_dst = 0; // Para ADDI, rt es destino
-        id_ex_alu_src = 1; // Usar inmediato
-        id_ex_alu_op = 4'b1000; // ADDI
-        id_ex_mem_read = 0;
-        id_ex_mem_write = 0;
-        id_ex_mem_to_reg = 0;
-        id_ex_reg_write = 1;
-        m_wb_data_write = 0;
-        ex_m_alu_result = 0;
-        ex_m_reg_write = 0;
-        ex_m_rd = 0;
-        m_wb_reg_write = 0;
-        m_wb_rd = 0;
+        // Simula una situación de forwarding desde WB
+        // Supongamos que $v0 (registro 2) fue escrito en WB y ahora lo necesita la instrucción en EX
+        i_id_ex_data_1 = 32'h00000000; // Valor original de $v0 (no usado por forwarding)
+        i_id_ex_data_2 = 32'h00000003; // Valor original de $v1
+        i_id_ex_rs = 2; // $v0
+        i_id_ex_rt = 3; // $v1
+        i_id_ex_rd = 4; // $a0
+        i_ex_m_rd = 0; // No coincide, no hay forwarding desde EX/MEM
+        i_m_wb_rd = 2; // $v0, coincide con rs
+        i_ex_m_reg_write = 0;
+        i_m_wb_reg_write = 1; // WB va a escribir en $v0
+        i_ex_m_alu_result = 32'h12345678; // Valor en EX/MEM (no usado)
+        i_m_wb_data_write = 32'hDEADBEEF; // Valor que debe ser redireccionado
+        i_id_ex_extended_beq_offset = 32'h00000000;
+        i_id_ex_alu_src = 0; // Usar data_2
+        i_id_ex_reg_dst = 1; // Usar rd
+        i_id_ex_alu_op = 4'b0010; // ADD
+        i_id_ex_function_code = 6'b100000; // ADD
 
         #10;
-        reset = 0;
+        $display("forward_a = %b (esperado 10)", forward_a);
+        $display("forward_b = %b (esperado 00)", forward_b);
+        $display("operando_a = %h (esperado DEADBEEF)", operando_a);
+        $display("operando_b = %h (esperado 00000003)", operando_b);
+        $display("ALU result = %h", o_ex_m_alu_result);
 
-        #10;
-        $display("Resultado esperado: 5");
-        $display("ALU result: %d", ex_m_alu_result_out);
-        $finish;
+        #10 $finish;
     end
 
 endmodule

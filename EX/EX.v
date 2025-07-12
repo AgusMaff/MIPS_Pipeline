@@ -9,7 +9,7 @@ module EX (
     input wire [4:0]  i_id_ex_rt,                  // ID del registro destino
     input wire [4:0]  i_id_ex_rd,                  // ID del registro destino
     input wire [4:0]  i_id_ex_function_code,       // Código de función
-    input wire [31:0] i_id_ex_extended_beq_offset, // Offset extend
+    input wire signed [31:0] i_id_ex_extended_beq_offset, // Offset extend
     input wire        i_id_ex_reg_dst,             // Señal de destino del registro
     input wire        i_id_ex_alu_src,             // Señal de origen de la ALU
     input wire [3:0]  i_id_ex_alu_op,              // Operación ALU de la unidad de control
@@ -49,7 +49,7 @@ module EX (
     FORWARDING_UNIT_EX forwarding_unit (
         .id_ex_rs(i_id_ex_rs),
         .id_ex_rt(i_id_ex_rt),
-        .ex_mem_rd(i_id_ex_mem_rd),
+        .ex_mem_rd(i_ex_m_rd),
         .mem_wb_rd(i_m_wb_rd),
         .ex_mem_reg_write(i_ex_m_reg_write),
         .mem_wb_reg_write(i_m_wb_reg_write),

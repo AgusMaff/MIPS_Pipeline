@@ -83,10 +83,10 @@ module id_tb;
 
     // FORWARDING_UNIT_ID
     FORWARDING_UNIT_ID forwarding_unit_id (
-        .rs_id(rs),
-        .rt_id(rt),
-        .rd_ex_m(ex_m_rd),
-        .reg_write_ex_m(ex_m_reg_write),
+        .if_id_rs(rs),
+        .if_id_rt(rt),
+        .ex_m_rd(ex_m_rd),
+        .ex_m_reg_write(ex_m_reg_write),
         .forward_a(forward_a),
         .forward_b(forward_b)
     );

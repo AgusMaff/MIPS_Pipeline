@@ -203,13 +203,13 @@ module CONTROL_UNIT (
                 default: begin // Default case (ADD)
                     branch     = 1'b0;
                     is_beq     = 1'b0;
-                    reg_dest   = 1'b1;
+                    reg_dest   = 1'b0;
                     alu_src    = 1'b0;
-                    alu_op     = 3'b010; 
+                    alu_op     = 3'b000; 
                     mem_read   = 1'b0;
                     mem_write  = 1'b0;
                     mem_to_reg = 1'b0;
-                    reg_write  = 1'b1;
+                    reg_write  = 1'b0;
                 end
             endcase
         end else begin // Si la unidad de control no está habilitada

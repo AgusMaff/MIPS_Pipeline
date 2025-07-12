@@ -5,8 +5,8 @@ module IF_ID (
     input  wire        reset,
     input  wire [31:0] if_pc_plus_4,
     input  wire [31:0] if_instruction,
-    input  wire        flush_idex,
     input  wire        stall,
+    input  wire        flush,
 
     output reg  [31:0] id_pc_plus_4,
     output reg  [4:0]  id_rs,
@@ -18,7 +18,7 @@ module IF_ID (
 );
 
     always @(posedge clk or posedge reset) begin
-        if (reset || flush_idex) begin
+        if (reset || flush) begin
             id_pc_plus_4 <= 32'b0;
             id_rs <= 5'b0;
             id_rt <= 5'b0;

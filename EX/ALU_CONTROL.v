@@ -13,7 +13,7 @@ module ALU_CONTROL(
             4'b0111: alu_control = 6'b100000; // Store operation (ADD)
             4'b1000: alu_control = 6'b100000; // ADDI (Add Immediate)
             4'b1001: alu_control = 6'b100001; // ADDIU (Add Immediate Unsigned)
-            4'b0101: alu_control = 6'b100100; // ANDI
+            4'b1010: alu_control = 6'b100100; // ANDI
             4'b1011: alu_control = 6'b100101; // ORI
             4'b1100: alu_control = 6'b100110; // XORI
             4'b1110: alu_control = 6'b101010; // SLTI
