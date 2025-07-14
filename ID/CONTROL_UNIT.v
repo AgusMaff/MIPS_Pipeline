@@ -12,7 +12,8 @@ module CONTROL_UNIT (
     output reg        mem_write,      // Señal de escritura en memoria
     output reg        mem_to_reg,     // Señal de escritura de memoria a registro
     output reg        reg_write,      // Señal de escritura en registro
-    output reg        jump            // Señal de salto
+    output reg        jump,           // Señal de salto
+    output reg  [2:0] bhw_type        // Tipo de instrucción de carga/almacenamiento (BHW)
 );
 
     always @(*) begin
@@ -31,6 +32,7 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1;
                             jump       = 1'b0; 
+                            bhw_type   = 3'b000; // Tipo de instrucción R
                         end
                         3'b100: begin //BEQ
                             branch     = 1'b1;
@@ -43,6 +45,7 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b0;
                             jump       = 1'b0; 
+                            bhw_type   = 3'b000; // Tipo de instrucción R
                         end
                         3'b101: begin //BNE
                             branch     = 1'b1;
@@ -55,6 +58,7 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b0;
                             jump       = 1'b0; 
+                            bhw_type   = 3'b000; // Tipo de instrucción R
                         end
                         3'b010: begin //JMP
                             branch     = 1'b0;
@@ -67,6 +71,7 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b0;
                             jump       = 1'b1; // Señal de salto
+                            bhw_type   = 3'b000; // Tipo de instrucción R
                         end
                         3'b011: begin //JAL
                             branch     = 1'b0;
@@ -79,32 +84,97 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // JAL escribe en $rd
                             jump       = 1'b1; // Señal de salto
+                            bhw_type   = 3'b000; // Tipo de instrucción R
                         end        
                     endcase
                 end
 
                 3'b100: begin //LOAD TYPE INSTRUCTIONS (LW, LH, LB, LBU, LHU, LWU)
-                        branch     = 1'b0;
-                        is_beq     = 1'b0;
-                        reg_dest   = 1'b0; // LW escribe en rt
-                        alu_src    = 1'b1; // Fuente ALU es inmediato
-                        alu_op     = 4'b0110; 
-                        mem_read   = 1'b1; // Leer de memoria
-                        mem_write  = 1'b0;
-                        mem_to_reg = 1'b1; // Escribir en registro desde memoria
-                        reg_write  = 1'b1; // Habilitar escritura en registro
+                    case(op_code[2:0])
+                        3'b011: begin //LW
+                            branch     = 1'b0;
+                            is_beq     = 1'b0;
+                            reg_dest   = 1'b0; // LW escribe en rt
+                            alu_src    = 1'b1; // Fuente ALU es inmediato
+                            alu_op     = 4'b0110; 
+                            mem_read   = 1'b1; // Leer de memoria
+                            mem_write  = 1'b0;
+                            mem_to_reg = 1'b1; // Escribir en registro desde memoria
+                            reg_write  = 1'b1; // Habilitar escritura en registro
+                            jump       = 1'b0;
+                            bhw_type   = 3'b001; // Tipo de instrucción de carga (Palabra completa)
+                        end
+                        3'b001: begin //LH
+                            branch     = 1'b0;
+                            is_beq     = 1'b0;
+                            reg_dest   = 1'b0; // LH escribe en rt
+                            alu_src    = 1'b1; // Fuente ALU es inmediato
+                            alu_op     = 4'b0110; 
+                            mem_read   = 1'b1; // Leer de memoria
+                            mem_write  = 1'b0;
+                            mem_to_reg = 1'b1; // Escribir en registro desde memoria
+                            reg_write  = 1'b1; // Habilitar escritura en registro
+                            jump       = 1'b0;
+                            bhw_type   = 3'b010; // Tipo de instrucción de carga (Media palabra)
+                        end
+                        3'b000: begin //LB
+                            branch     = 1'b0;
+                            is_beq     = 1'b0;
+                            reg_dest   = 1'b0; // LB escribe en rt
+                            alu_src    = 1'b1; // Fuente ALU es inmediato
+                            alu_op     = 4'b0110; 
+                            mem_read   = 1'b1; // Leer de memoria
+                            mem_write  = 1'b0;
+                            mem_to_reg = 1'b1; // Escribir en registro desde memoria
+                            reg_write  = 1'b1; // Habilitar escritura en registro
+                            jump       = 1'b0;
+                            bhw_type   = 3'b100; // Tipo de instrucción de carga (Byte)
+                        end
+                    endcase
                 end
 
                 3'b101: begin //STORE TYPE INSTRUCTIONS (SW, SH, SB)
-                        branch     = 1'b0;
-                        is_beq     = 1'b0;
-                        reg_dest   = 1'b0; // No se escribe en registro
-                        alu_src    = 1'b1; // Fuente ALU es inmediato
-                        alu_op     = 4'b0111;
-                        mem_read   = 1'b0;
-                        mem_write  = 1'b1; // Escribir en memoria
-                        mem_to_reg = 1'b0; // No se escribe en registro desde memoria
-                        reg_write  = 1'b0; // No se escribe en registro
+                    case(op_code[2:0])
+                        3'b011: begin //SW
+                            branch     = 1'b0;
+                            is_beq     = 1'b0;
+                            reg_dest   = 1'b0; // SW no escribe en registro
+                            alu_src    = 1'b1; // Fuente ALU es inmediato
+                            alu_op     = 4'b0110; 
+                            mem_read   = 1'b0;
+                            mem_write  = 1'b1; // Escribir en memoria
+                            mem_to_reg = 1'b0; // No se escribe en registro
+                            reg_write  = 1'b0; // No se habilita escritura en registro
+                            jump       = 1'b0;
+                            bhw_type   = 3'b001; // Tipo de instrucción de almacenamiento (Palabra completa)
+                        end
+                        3'b001: begin //SH
+                            branch     = 1'b0;
+                            is_beq     = 1'b0;
+                            reg_dest   = 1'b0; // SH no escribe en registro
+                            alu_src    = 1'b1; // Fuente ALU es inmediato
+                            alu_op     = 4'b0110; 
+                            mem_read   = 1'b0;
+                            mem_write  = 1'b1; // Escribir en memoria
+                            mem_to_reg = 1'b0; // No se escribe en registro
+                            reg_write  = 1'b0; // No se habilita escritura en registro
+                            jump       = 1'b0;
+                            bhw_type   = 3'b010; // Tipo de instrucción de almacenamiento (Media palabra)
+                        end
+                        3'b000: begin //SB
+                            branch     = 1'b0;
+                            is_beq     = 1'b0;
+                            reg_dest   = 1'b0; // SB no escribe en registro
+                            alu_src    = 1'b1; // Fuente ALU es inmediato
+                            alu_op     = 4'b0110; 
+                            mem_read   = 1'b0;
+                            mem_write  = 1'b1; // Escribir en memoria
+                            mem_to_reg = 1'b0; // No se escribe en registro
+                            reg_write  = 1'b0; // No se habilita escritura en registro
+                            jump       = 1'b0;
+                            bhw_type   = 3'b100; // Tipo de instrucción de almacenamiento (Byte)
+                        end
+                    endcase
                 end
 
                 3'b001: begin // I TYPE INSTRUCTIONS (ADDI, ADDIU, ANDI, ORI, XORI, SLTI, SLTIU)
@@ -119,6 +189,8 @@ module CONTROL_UNIT (
                             mem_write  = 1'b0;
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // Habilitar escritura en registro
+                            jump       = 1'b0;
+                            bhw_type   = 3'b000; // Tipo de instrucción I
                         end
                         3'b001: begin //ADDIU
                             branch     = 1'b0;
@@ -130,6 +202,8 @@ module CONTROL_UNIT (
                             mem_write  = 1'b0;
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // Habilitar escritura en registro
+                            jump       = 1'b0;
+                            bhw_type   = 3'b000; // Tipo de instrucción I
                         end
                         3'b100: begin //ANDI
                             branch     = 1'b0;
@@ -141,6 +215,8 @@ module CONTROL_UNIT (
                             mem_write  = 1'b0;
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // Habilitar escritura en registro
+                            jump       = 1'b0;
+                            bhw_type   = 3'b000; // Tipo de instrucción I
                         end
                         3'b101: begin //ORI
                             branch     = 1'b0;
@@ -152,6 +228,8 @@ module CONTROL_UNIT (
                             mem_write  = 1'b0;
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // Habilitar escritura en registro
+                            jump       = 1'b0;
+                            bhw_type   = 3'b000; // Tipo de instrucción I
                         end
                         3'b110: begin //XORI
                             branch     = 1'b0;
@@ -163,6 +241,8 @@ module CONTROL_UNIT (
                             mem_write  = 1'b0;
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // Habilitar escritura en registro
+                            jump       = 1'b0;
+                            bhw_type   = 3'b000; // Tipo de instrucción I
                         end
                         3'b111: begin //LUI
                             branch     = 1'b0;
@@ -174,6 +254,8 @@ module CONTROL_UNIT (
                             mem_write  = 1'b0;
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // Habilitar escritura en registro
+                            jump       = 1'b0;
+                            bhw_type   = 3'b000; // Tipo de instrucción I
                         end
                         3'b010: begin //SLTI
                             branch     = 1'b0;
@@ -185,6 +267,8 @@ module CONTROL_UNIT (
                             mem_write  = 1'b0;
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // Habilitar escritura en registro
+                            jump       = 1'b0;
+                            bhw_type   = 3'b000; // Tipo de instrucción I
                         end
                         3'b011: begin //SLTIU
                             branch     = 1'b0;
@@ -196,6 +280,8 @@ module CONTROL_UNIT (
                             mem_write  = 1'b0;
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // Habilitar escritura en registro
+                            jump       = 1'b0;
+                            bhw_type   = 3'b000; // Tipo de instrucción I
                         end
                     endcase
                 end
@@ -210,6 +296,8 @@ module CONTROL_UNIT (
                     mem_write  = 1'b0;
                     mem_to_reg = 1'b0;
                     reg_write  = 1'b0;
+                    jump       = 1'b0;
+                    bhw_type   = 3'b000; // Tipo de instrucción R
                 end
             endcase
         end else begin // Si la unidad de control no está habilitada
@@ -222,6 +310,8 @@ module CONTROL_UNIT (
             mem_write  = 1'b0;
             mem_to_reg = 1'b0;
             reg_write  = 1'b0;
+            jump       = 1'b0;
+            bhw_type   = 3'b000; // Tipo de instrucción R
         end
     end
 endmodule

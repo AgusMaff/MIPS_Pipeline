@@ -38,6 +38,7 @@ module ID (
     output wire        o_mem_to_reg,
     output wire        o_reg_write,
     output wire        o_jump,
+    output wire [2:0]  o_bhw_type,
     output wire        o_flush_idex,
     output wire        o_stall
 );
@@ -81,7 +82,8 @@ module ID (
         .mem_write(o_mem_write),
         .mem_to_reg(o_mem_to_reg),
         .reg_write(o_reg_write),
-        .jump(o_jump)
+        .jump(o_jump),
+        .bhw_type(o_bhw_type)
     );
 
     HAZARD_UNIT hazard_unit (

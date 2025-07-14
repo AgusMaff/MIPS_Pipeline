@@ -17,6 +17,7 @@ module ID_EX (
     input  wire        id_m_mem_write,
     input  wire        id_wb_mem_to_reg,
     input  wire        id_wb_reg_write,
+    input  wire [2:0]  id_bhw_type,
 
     output reg [31:0] ex_dato_1,
     output reg [31:0] ex_dato_2,
@@ -31,7 +32,8 @@ module ID_EX (
     output reg        ex_m_mem_read,
     output reg        ex_m_mem_write,
     output reg        ex_wb_mem_to_reg,
-    output reg        ex_wb_reg_write
+    output reg        ex_wb_reg_write,
+    output reg [2:0]  ex_bhw_type
 );
 
     always @(posedge clk or posedge reset) begin
@@ -50,6 +52,7 @@ module ID_EX (
             ex_m_mem_write <= 1'b0;
             ex_wb_mem_to_reg <= 1'b0;
             ex_wb_reg_write <= 1'b0;
+            ex_bhw_type <= 3'b0;
         end else begin
             ex_dato_1 <= id_dato_1;
             ex_dato_2 <= id_dato_2;   
@@ -65,6 +68,7 @@ module ID_EX (
             ex_m_mem_write <= id_m_mem_write;
             ex_wb_mem_to_reg <= id_wb_mem_to_reg;
             ex_wb_reg_write <= id_wb_reg_write; 
+            ex_bhw_type <= id_bhw_type;
         end
     end
 endmodule

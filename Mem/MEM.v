@@ -10,6 +10,7 @@ module MEM (
     input wire        i_m_mem_write,           // Señal de escritura de memoria
     input wire        i_m_mem_to_reg,          // Señal de escritura de registro
     input wire        i_m_reg_write,           // Señal de escritura de registro
+    input wire [2:0]  i_m_bhw_type,          // Tipo de instrucción (Byte, Halfword, Word)
 
     output wire [31:0] o_m_wb_read_data,
     output wire [4:0]  o_m_rd,             // ID del registro destino
@@ -19,8 +20,9 @@ module MEM (
     output wire        o_m_wb_reg_write      // Señal de escritura de registro
 );
 
-     // Memoria de datos (1016 bytes = 254 palabras de 32 bits)
-     reg [7:0] memory [0:1015];
+    // Memoria de datos (1016 bytes = 254 palabras de 32 bits)
+    reg [7:0] memory [0:1015];
+    reg [31:0] read_data; // Registro para almacenar los datos leídos de memoria
 
     integer j;
 
@@ -29,23 +31,48 @@ module MEM (
             // Resetea la memoria a ceros
             for (j = 0; j < 1016; j = j + 1) begin
                 memory[j] <= 8'b0;
+                read_data <= 32'b0; // Resetea el registro de datos leídos
             end
-        end else if (i_m_mem_write) begin
-            // Escribe datos en la memoria
-            memory[i_mem_alu_result_or_addr] <= i_mem_write_data[7:0];
-            memory[i_mem_alu_result_or_addr + 1] <= i_mem_write_data[15:8];
-            memory[i_mem_alu_result_or_addr + 2] <= i_mem_write_data[23:16];
-            memory[i_mem_alu_result_or_addr + 3] <= i_mem_write_data[31:24];
+        end else if (i_m_mem_write) begin //Almacenamiento
+            case(i_m_bhw_type[2:0])
+                3'b001: begin // Word
+                    memory[i_mem_alu_result_or_addr]     <= i_mem_write_data[7:0];
+                    memory[i_mem_alu_result_or_addr + 1] <= i_mem_write_data[15:8];
+                    memory[i_mem_alu_result_or_addr + 2] <= i_mem_write_data[23:16];
+                    memory[i_mem_alu_result_or_addr + 3] <= i_mem_write_data[31:24];
+                end
+                3'b010: begin // Halfword
+                    memory[i_mem_alu_result_or_addr]     <= i_mem_write_data[7:0];
+                    memory[i_mem_alu_result_or_addr + 1] <= i_mem_write_data[15:8];
+                end
+                3'b100: begin // Byte
+                    memory[i_mem_alu_result_or_addr]     <= i_mem_write_data[7:0];
+                end
+            endcase
+        end else if (i_m_mem_read) begin //Carga
+            case(i_m_bhw_type[2:0])
+                3'b001: begin // Word
+                    read_data <= {memory[i_mem_alu_result_or_addr + 3],
+                                  memory[i_mem_alu_result_or_addr + 2],
+                                  memory[i_mem_alu_result_or_addr + 1],
+                                  memory[i_mem_alu_result_or_addr]};
+                end
+                3'b010: begin // Halfword
+                    read_data <= {memory[i_mem_alu_result_or_addr + 1],
+                                  memory[i_mem_alu_result_or_addr]};
+                end
+                3'b100: begin // Byte
+                    read_data <= {24'b0, memory[i_mem_alu_result_or_addr]};
+                end
+                default: begin
+                    read_data <= 32'b0;
+                end
+            endcase
         end
     end
 
     // Lectura de datos de memoria
-    assign o_m_wb_read_data = i_m_mem_read ?
-        {memory[i_mem_alu_result_or_addr + 3],
-         memory[i_mem_alu_result_or_addr + 2],
-         memory[i_mem_alu_result_or_addr + 1],
-         memory[i_mem_alu_result_or_addr]} :
-        32'b0;
+    assign o_m_wb_read_data = read_data;
     
     assign o_m_wb_alu_result = i_mem_alu_result_or_addr;
     assign o_m_wb_rd = i_mem_rd;
