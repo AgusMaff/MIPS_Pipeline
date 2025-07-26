@@ -8,7 +8,7 @@ module ID_EX (
     input  wire [4:0]  id_rs,
     input  wire [4:0]  id_rt,
     input  wire [4:0]  id_rd,
-    input  wire [31:0] id_extended_beq_offset,
+    input  wire signed [31:0] id_extended_beq_offset,
     input  wire [5:0]  id_function_code,
     input  wire        id_ex_reg_dst,
     input  wire        id_ex_alu_src,
@@ -25,7 +25,7 @@ module ID_EX (
     output reg [4:0]  ex_rt,
     output reg [4:0]  ex_rd,
     output reg [5:0]  ex_function_code,
-    output reg [31:0] ex_extended_beq_offset,
+    output reg signed [31:0] ex_extended_beq_offset,
     output reg        ex_reg_dst,
     output reg        ex_alu_src,
     output reg [3:0]  ex_alu_op,
@@ -35,6 +35,7 @@ module ID_EX (
     output reg        ex_wb_reg_write,
     output reg [2:0]  ex_bhw_type
 );
+    
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin

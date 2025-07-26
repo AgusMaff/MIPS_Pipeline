@@ -148,8 +148,9 @@ module beq_test;
         .i_function_code(id_function_code), // Function code from IF_ID stage (not connected)
         .i_id_ex_reg_write(ex_reg_write), // Reg write signal from EX stage (not connected)
         .i_id_ex_mem_read(ex_read), // Mem read signal from EX stage (not connected)
-        .i_ex_m_alu_result(m_alu_result), // ALU result from EX/MEM stage (not connected)
-        .i_ex_m_rd(m_rd), // rd from EX/MEM stage (not connected)
+        .i_ex_m_alu_result(ex_m_alu_result), // ALU result from EX/MEM stage (not connected)
+        .i_ex_m_rd(ex_m_rd), // rd from EX/MEM stage (not connected)
+        .i_m_rd(m_rd), // rd from MEM stage (not connected)
         .i_id_ex_rt(ex_rt), // rt from ID/EX stage (not connected)
         .i_ex_m_reg_write(m_reg_write), // Reg write signal from EX/MEM stage (not connected)
         .i_ex_m_memtoreg(m_mem_to_reg), // Mem to reg signal from EX/MEM stage (not connected)
@@ -341,11 +342,16 @@ module beq_test;
         i_reset = 0;
 
         // Cargar instrucción BEQ en la memoria de instrucciones
+        //@(negedge i_clk);
+        //i_du_write_en = 1;
+        //i_du_read_en = 0;
+        //i_du_data = 32'b001001_00010_00011_0000000000001000; //ADDIU $v0, $v1, 8
+        //i_du_inst_addr_wr = 0;
         @(negedge i_clk);
         i_du_write_en = 1;
         i_du_read_en = 0;
         i_du_data = 32'b000100_00010_00011_0000000000001000; //BEQ $v0, $v1, 8
-        i_du_inst_addr_wr = 0;
+        i_du_inst_addr_wr = 4;
         @(negedge i_clk);
         i_du_write_en = 1;
         i_du_read_en = 0;

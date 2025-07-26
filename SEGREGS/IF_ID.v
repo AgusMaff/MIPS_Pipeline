@@ -24,8 +24,16 @@ module IF_ID (
             id_rt <= 5'b0;
             id_rd <= 5'b0;
             id_beq_offset <= 16'b0;
-            id_opcode <= 5'b0;
-            id_function_code <= 5'b0;
+            id_opcode <= 6'b0;
+            id_function_code <= 6'b0;
+        end else if (flush) begin
+            id_pc_plus_4 <= 32'b0;
+            id_rs <= 5'b0;
+            id_rt <= 5'b0;
+            id_rd <= 5'b0;
+            id_beq_offset <= 16'b0;
+            id_opcode <= 6'b0;
+            id_function_code <= 6'b0;
         end else if (!stall) begin
             id_pc_plus_4 <= if_pc_plus_4;
             id_rs <= if_instruction[25:21];
