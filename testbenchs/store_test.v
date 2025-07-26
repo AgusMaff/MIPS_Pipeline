@@ -5,9 +5,16 @@ module store_test;
     reg i_clk;
     reg i_reset;
     reg [31:0] i_du_data;
-    reg [31:0] i_du_addr_wr;
+    reg [31:0] i_du_inst_addr_wr;
     reg i_du_write_en;
     reg i_du_read_en;
+
+    reg [63:0] o_du_if_id_da;
+    reg [129:0] o_du_id_ex_d;
+    reg [75:0] o_du_ex_m_dat;
+    reg [70:0] o_du_m_wb_dat;
+    reg [31:0] o_du_regs_mem;
+    wire [31:0] o_du_mem_data;
 
     //Señales de control
     wire pcsrc; // Señal de selección de PC
@@ -94,18 +101,16 @@ module store_test;
     wire wb_mem_to_reg; // Señal de escritura de registro desde memoria para la etapa WB
     wire [31:0] wb_alu_result; // Resultado de la ALU para la etapa WB
 
-
-
     IF if_stage (
         .i_clk(i_clk),
         .i_reset(i_reset),
         .i_stall(stall), // No stall signal for now
         .i_pcsrc(pcsrc), // No branch taken for now
         .i_jump(jump), // No jump for now
-        .i_write_en(i_du_write_en), // No write enable for instruction memory
+        .i_write_en(i_du_write_en & ~o_du_halt), // No write enable for instruction memory
         .i_read_en(i_du_read_en), // Always read from instruction memory
         .i_data(i_du_data), // No data to write in instruction memory
-        .i_addr_wr(i_du_addr_wr), // No address to write in instruction memory
+        .i_addr_wr(i_du_inst_addr_wr), // No address to write in instruction memory
         .i_beq_dir(if_beq_jump_dir), // No branch direction for now
 
         .o_pc_plus_4(if_id_pc_plus_4), // Output PC + 4 (not connected)
@@ -149,6 +154,7 @@ module store_test;
         .i_id_ex_rt(ex_rt), // rt from ID/EX stage (not connected)
         .i_ex_m_reg_write(m_reg_write), // Reg write signal from EX/MEM stage (not connected)
         .i_ex_m_memtoreg(m_mem_to_reg), // Mem to reg signal from EX/MEM stage (not connected)
+        .i_du_reg_addr(i_du_inst_addr_wr[4:0]), // Register address for debug unit
 
         .o_pc_src(pcsrc), // Output pcsrc signal
         .o_data_1(id_ex_data_1), // Output data 1 for ID stage (not connected)
@@ -169,7 +175,9 @@ module store_test;
         .o_jump(jump), // Output jump signal for ID stage (not connected)
         .o_bhw_type(id_ex_bhw_type), // Output bhw type signal for
         .o_flush_idex(flush_idex), // Output flush ID/EX signal for ID stage (not connected)
-        .o_stall(stall) // Output stall signal for ID stage (not connected)p signal for ID stage (not connected)
+        .o_stall(stall), // Output stall signal for ID stage (not connected)p signal for ID stage (not connected)
+        .o_halt(o_du_halt), // Output halt signal for ID stage (not connected)
+        .o_du_reg_data(o_du_regs_mem_data)
     );  
 
     ID_EX id_ex_segmentation_register (
@@ -276,12 +284,15 @@ module store_test;
         .i_m_mem_to_reg(m_mem_to_reg),
         .i_m_reg_write(m_reg_write),
         .i_m_bhw_type(m_bhw_type),
+        .i_du_mem_addr(i_du_inst_addr_wr), // Address for debug unit
 
         .o_m_wb_read_data(m_wb_read_data),
         .o_m_rd(m_wb_rd),
+        .o_m_wb_rd(m_wb_rd),
         .o_m_wb_alu_result(m_wb_alu_result),
         .o_m_wb_mem_to_reg(m_wb_mem_to_reg),
-        .o_m_wb_reg_write(m_wb_reg_write)
+        .o_m_wb_reg_write(m_wb_reg_write),
+        .o_du_mem_data(o_du_mem_data) // Data read from memory for debug unit
     );
 
     M_WB m_wb_segmentation_register (
@@ -304,8 +315,6 @@ module store_test;
         .i_wb_data(wb_data),
         .i_wb_mem_to_reg(wb_mem_to_reg),
         .i_wb_alu_result(wb_alu_result),
-        .i_wb_reg_write(wb_reg_write),
-        .i_wb_rd(wb_rd),
 
         .o_wb_write_data(wb_write_data)
     );
@@ -321,7 +330,7 @@ module store_test;
         i_du_write_en = 0;
         i_du_read_en = 0;
         i_du_data = 0;
-        i_du_addr_wr = 0;
+        i_du_inst_addr_wr = 0;
         #12;
         i_reset = 0;
 
@@ -330,22 +339,22 @@ module store_test;
         i_du_write_en = 1;
         i_du_read_en = 0;
         i_du_data = 32'b001001_00010_00011_1111111111111111; // ADDI $v0, $v1, 65535
-        i_du_addr_wr = 0;
+        i_du_inst_addr_wr = 0;
         @(negedge i_clk);
         i_du_write_en = 1;
         i_du_read_en = 0;
         i_du_data = 32'b101011_00000_00011_0000000000000111; // SW $zero, $v1, 7
-        i_du_addr_wr = 4;
+        i_du_inst_addr_wr = 4;
         @(negedge i_clk);
         i_du_write_en = 1;
         i_du_read_en = 0;
         i_du_data = 32'b101000_00000_00011_0000000000001011; // SB $zero, $v1, 11
-        i_du_addr_wr = 8;
+        i_du_inst_addr_wr = 8;
         @(negedge i_clk);
         i_du_write_en = 1;
         i_du_read_en = 0;
         i_du_data = 32'b101001_00000_00011_0000000000001100; // SH $zero, $v1, 9
-        i_du_addr_wr = 12;
+        i_du_inst_addr_wr = 12;
         @(negedge i_clk);
         i_du_write_en = 0;
         i_du_read_en = 1;

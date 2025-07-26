@@ -20,6 +20,7 @@ module ID (
     input  wire [4:0]  i_id_ex_rt,
     input  wire        i_ex_m_reg_write,
     input  wire        i_ex_m_memtoreg,
+    input  wire [4:0]  i_du_reg_addr,
 
     output wire        o_pc_src,
     output wire [31:0] o_data_1,
@@ -40,7 +41,9 @@ module ID (
     output wire        o_jump,
     output wire [2:0]  o_bhw_type,
     output wire        o_flush_idex,
-    output wire        o_stall
+    output wire        o_stall,
+    output wire        o_halt,
+    output wire [31:0] o_du_reg_data
 );
 
     wire [31:0] data_1;
@@ -66,6 +69,8 @@ module ID (
         .write_data(i_data_write),
         .reg_addr(i_m_wb_rd),
         .write_enable(i_m_wb_reg_write),
+        .du_reg_addr(i_du_reg_addr),
+        .du_reg_data(o_du_reg_data), 
         .data_1(data_1),
         .data_2(data_2)
     );
@@ -83,7 +88,8 @@ module ID (
         .mem_to_reg(o_mem_to_reg),
         .reg_write(o_reg_write),
         .jump(o_jump),
-        .bhw_type(o_bhw_type)
+        .bhw_type(o_bhw_type),
+        .halt(o_halt)
     );
 
     HAZARD_UNIT hazard_unit (

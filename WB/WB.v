@@ -4,8 +4,6 @@ module WB (
     input wire [31:0] i_wb_data,
     input wire i_wb_mem_to_reg,
     input wire [31:0] i_wb_alu_result,
-    input wire i_wb_reg_write,
-    input wire [4:0] i_wb_rd, 
 
     output wire [31:0] o_wb_write_data
 );

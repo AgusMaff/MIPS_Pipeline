@@ -13,7 +13,8 @@ module CONTROL_UNIT (
     output reg        mem_to_reg,     // Señal de escritura de memoria a registro
     output reg        reg_write,      // Señal de escritura en registro
     output reg        jump,           // Señal de salto
-    output reg  [2:0] bhw_type        // Tipo de instrucción de carga/almacenamiento (BHW)
+    output reg  [2:0] bhw_type,       // Tipo de instrucción de carga/almacenamiento (BHW)
+    output reg        halt            // Señal de parada (HALT)
 );
 
     always @(*) begin
@@ -33,6 +34,7 @@ module CONTROL_UNIT (
                             reg_write  = 1'b1;
                             jump       = 1'b0; 
                             bhw_type   = 3'b000; // Tipo de instrucción R
+                            halt       = 1'b0; // No es HALT
                         end
                         3'b100: begin //BEQ
                             branch     = 1'b1;
@@ -46,6 +48,7 @@ module CONTROL_UNIT (
                             reg_write  = 1'b0;
                             jump       = 1'b0; 
                             bhw_type   = 3'b000; // Tipo de instrucción R
+                            halt       = 1'b0; // No es HALT
                         end
                         3'b101: begin //BNE
                             branch     = 1'b1;
@@ -59,6 +62,7 @@ module CONTROL_UNIT (
                             reg_write  = 1'b0;
                             jump       = 1'b0; 
                             bhw_type   = 3'b000; // Tipo de instrucción R
+                            halt       = 1'b0; // No es HALT
                         end
                         3'b010: begin //JMP
                             branch     = 1'b0;
@@ -72,6 +76,7 @@ module CONTROL_UNIT (
                             reg_write  = 1'b0;
                             jump       = 1'b1; // Señal de salto
                             bhw_type   = 3'b000; // Tipo de instrucción R
+                            halt       = 1'b0; // No es HALT
                         end
                         3'b011: begin //JAL
                             branch     = 1'b0;
@@ -85,6 +90,7 @@ module CONTROL_UNIT (
                             reg_write  = 1'b1; // JAL escribe en $rd
                             jump       = 1'b1; // Señal de salto
                             bhw_type   = 3'b000; // Tipo de instrucción R
+                            halt       = 1'b0; // No es HALT
                         end        
                     endcase
                 end
@@ -103,6 +109,7 @@ module CONTROL_UNIT (
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
                             bhw_type   = 3'b001; // Tipo de instrucción de carga (Palabra completa)
+                            halt       = 1'b0; // No es HALT
                         end
                         3'b001: begin //LH
                             branch     = 1'b0;
@@ -116,6 +123,7 @@ module CONTROL_UNIT (
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
                             bhw_type   = 3'b010; // Tipo de instrucción de carga (Media palabra)
+                            halt       = 1'b0; // No es HALT
                         end
                         3'b000: begin //LB
                             branch     = 1'b0;
@@ -129,6 +137,49 @@ module CONTROL_UNIT (
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
                             bhw_type   = 3'b100; // Tipo de instrucción de carga (Byte)
+                            halt       = 1'b0; // No es HALT
+                        end
+                        3'b111: begin //LWU
+                            branch     = 1'b0;
+                            is_beq     = 1'b0;
+                            reg_dest   = 1'b0; // LWU escribe en rt
+                            alu_src    = 1'b1; // Fuente ALU es inmediato
+                            alu_op     = 4'b0110; 
+                            mem_read   = 1'b1; // Leer de memoria
+                            mem_write  = 1'b0;
+                            mem_to_reg = 1'b1; // Escribir en registro desde memoria
+                            reg_write  = 1'b1; // Habilitar escritura en registro
+                            jump       = 1'b0;
+                            bhw_type   = 3'b101; // Tipo de instrucción de carga (Palabra completa)
+                            halt       = 1'b0; // No es HALT
+                        end
+                        3'b100: begin //LBU
+                            branch     = 1'b0;
+                            is_beq     = 1'b0;
+                            reg_dest   = 1'b0; // LBU escribe en rt
+                            alu_src    = 1'b1; // Fuente ALU es inmediato
+                            alu_op     = 4'b0110; 
+                            mem_read   = 1'b1; // Leer de memoria
+                            mem_write  = 1'b0;
+                            mem_to_reg = 1'b1; // Escribir en registro desde memoria
+                            reg_write  = 1'b1; // Habilitar escritura en registro
+                            jump       = 1'b0;
+                            bhw_type   = 3'b110; // Tipo de instrucción de carga (Byte)
+                            halt       = 1'b0; // No es HALT
+                        end
+                        3'b101: begin //LHU
+                            branch     = 1'b0;
+                            is_beq     = 1'b0;
+                            reg_dest   = 1'b0; // LHU escribe en rt
+                            alu_src    = 1'b1; // Fuente ALU es inmediato
+                            alu_op     = 4'b0110; 
+                            mem_read   = 1'b1; // Leer de memoria
+                            mem_write  = 1'b0;
+                            mem_to_reg = 1'b1; // Escribir en registro desde memoria
+                            reg_write  = 1'b1; // Habilitar escritura en registro
+                            jump       = 1'b0;
+                            bhw_type   = 3'b111; // Tipo de instrucción de carga (Media palabra)
+                            halt       = 1'b0; // No es HALT
                         end
                     endcase
                 end
@@ -147,6 +198,7 @@ module CONTROL_UNIT (
                             reg_write  = 1'b0; // No se habilita escritura en registro
                             jump       = 1'b0;
                             bhw_type   = 3'b001; // Tipo de instrucción de almacenamiento (Palabra completa)
+                            halt       = 1'b0; // No es HALT
                         end
                         3'b001: begin //SH
                             branch     = 1'b0;
@@ -160,6 +212,7 @@ module CONTROL_UNIT (
                             reg_write  = 1'b0; // No se habilita escritura en registro
                             jump       = 1'b0;
                             bhw_type   = 3'b010; // Tipo de instrucción de almacenamiento (Media palabra)
+                            halt       = 1'b0; // No es HALT
                         end
                         3'b000: begin //SB
                             branch     = 1'b0;
@@ -173,6 +226,7 @@ module CONTROL_UNIT (
                             reg_write  = 1'b0; // No se habilita escritura en registro
                             jump       = 1'b0;
                             bhw_type   = 3'b100; // Tipo de instrucción de almacenamiento (Byte)
+                            halt       = 1'b0; // No es HALT
                         end
                     endcase
                 end
@@ -191,6 +245,7 @@ module CONTROL_UNIT (
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
                             bhw_type   = 3'b000; // Tipo de instrucción I
+                            halt       = 1'b0; // No es HALT
                         end
                         3'b001: begin //ADDIU
                             branch     = 1'b0;
@@ -204,6 +259,7 @@ module CONTROL_UNIT (
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
                             bhw_type   = 3'b000; // Tipo de instrucción I
+                            halt       = 1'b0; // No es HALT
                         end
                         3'b100: begin //ANDI
                             branch     = 1'b0;
@@ -217,6 +273,7 @@ module CONTROL_UNIT (
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
                             bhw_type   = 3'b000; // Tipo de instrucción I
+                            halt       = 1'b0; // No es HALT
                         end
                         3'b101: begin //ORI
                             branch     = 1'b0;
@@ -230,6 +287,7 @@ module CONTROL_UNIT (
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
                             bhw_type   = 3'b000; // Tipo de instrucción I
+                            halt       = 1'b0; // No es HALT
                         end
                         3'b110: begin //XORI
                             branch     = 1'b0;
@@ -243,6 +301,7 @@ module CONTROL_UNIT (
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
                             bhw_type   = 3'b000; // Tipo de instrucción I
+                            halt       = 1'b0; // No es HALT
                         end
                         3'b111: begin //LUI
                             branch     = 1'b0;
@@ -256,6 +315,7 @@ module CONTROL_UNIT (
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
                             bhw_type   = 3'b000; // Tipo de instrucción I
+                            halt       = 1'b0; // No es HALT
                         end
                         3'b010: begin //SLTI
                             branch     = 1'b0;
@@ -269,6 +329,7 @@ module CONTROL_UNIT (
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
                             bhw_type   = 3'b000; // Tipo de instrucción I
+                            halt       = 1'b0; // No es HALT
                         end
                         3'b011: begin //SLTIU
                             branch     = 1'b0;
@@ -282,9 +343,30 @@ module CONTROL_UNIT (
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
                             bhw_type   = 3'b000; // Tipo de instrucción I
+                            halt       = 1'b0; // No es HALT
                         end
                     endcase
                 end
+
+                3'b111: begin 
+                    case (op_code[2:0])
+                        3'b111: begin //HALT
+                            branch     = 1'b0;
+                            is_beq     = 1'b0;
+                            reg_dest   = 1'b0;
+                            alu_src    = 1'b0;
+                            alu_op     = 4'b0000; 
+                            mem_read   = 1'b0;
+                            mem_write  = 1'b0;
+                            mem_to_reg = 1'b0;
+                            reg_write  = 1'b0;
+                            jump       = 1'b0;
+                            bhw_type   = 3'b000; // Tipo de instrucción R
+                            halt       = 1'b1; // Señal de parada (HALT)
+                        end
+                    endcase
+                end
+
                 
                 default: begin // Default case (ADD)
                     branch     = 1'b0;
@@ -298,6 +380,7 @@ module CONTROL_UNIT (
                     reg_write  = 1'b0;
                     jump       = 1'b0;
                     bhw_type   = 3'b000; // Tipo de instrucción R
+                    halt       = 1'b0; // No es HALT
                 end
             endcase
         end else begin // Si la unidad de control no está habilitada
@@ -312,6 +395,7 @@ module CONTROL_UNIT (
             reg_write  = 1'b0;
             jump       = 1'b0;
             bhw_type   = 3'b000; // Tipo de instrucción R
+            halt       = 1'b0; // No es HALT
         end
     end
 endmodule

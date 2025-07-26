@@ -18,7 +18,7 @@ module IF_ID (
 );
 
     always @(posedge clk or posedge reset) begin
-        if (reset || flush) begin
+        if (reset) begin
             id_pc_plus_4 <= 32'b0;
             id_rs <= 5'b0;
             id_rt <= 5'b0;

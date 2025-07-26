@@ -8,6 +8,8 @@ module REGMEM (
     input  wire [31:0] write_data,
     input  wire [4:0]  reg_addr,
     input  wire        write_enable,
+    input  wire [4:0]  du_reg_addr,
+    output wire [31:0] du_reg_data,
     output wire [31:0] data_1,
     output wire [31:0] data_2
 );
@@ -17,6 +19,8 @@ module REGMEM (
     // Lectura combinacional
     assign data_1 = registers[rs];
     assign data_2 = registers[rt];
+
+    assign du_reg_data = registers[du_reg_addr];
 
     integer i;
 

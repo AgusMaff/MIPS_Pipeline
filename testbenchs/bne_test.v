@@ -5,9 +5,16 @@ module bne_test;
     reg i_clk;
     reg i_reset;
     reg [31:0] i_du_data;
-    reg [31:0] i_du_addr_wr;
+    reg [31:0] i_du_inst_addr_wr;
     reg i_du_write_en;
     reg i_du_read_en;
+
+    reg [63:0] o_du_if_id_da;
+    reg [129:0] o_du_id_ex_d;
+    reg [75:0] o_du_ex_m_dat;
+    reg [70:0] o_du_m_wb_dat;
+    reg [31:0] o_du_regs_mem;
+    wire [31:0] o_du_mem_data;
 
     //Señales de control
     wire pcsrc; // Señal de selección de PC
@@ -43,6 +50,7 @@ module bne_test;
     wire id_ex_mem_write; // Señal de escritura de memoria
     wire id_ex_mem_to_reg; // Señal de escritura de registro desde memoria
     wire id_ex_reg_write; // Señal de escritura de registro
+    wire [2:0] id_ex_bhw_type; // Tipo de instrucción (Byte, Halfword, Word)
 
     //Etapa EX
     wire [31:0] ex_data_1; // Dato 1 de la etapa ID/EX
@@ -58,6 +66,7 @@ module bne_test;
     wire ex_read; // Señal de lectura de memoria de la etapa ID/EX
     wire ex_write; // Señal de escritura de memoria de la etapa ID/EX
     wire ex_to_reg; // Señal de escritura de registro desde memoria de la etapa ID/EX
+    wire [2:0] ex_bhw_type; // Tipo de instrucción (Byte, Halfword, Word) de la etapa ID/EX
 
     wire [4:0] ex_m_rd; // Registro destino rd de la etapa ID/EX
     wire [31:0] ex_m_alu_result; // Resultado de la ALU de la etapa ID/EX
@@ -66,6 +75,7 @@ module bne_test;
     wire ex_m_mem_write; // Señal de escritura de memoria de la etapa ID/EX
     wire ex_m_mem_to_reg; // Señal de escritura de registro desde memoria de la etapa ID/EX
     wire ex_m_reg_write; // Señal de escritura de registro de la etapa ID/EX
+    wire [2:0] ex_m_bhw_type; // Tipo de instrucción (Byte, Halfword, Word) de la etapa ID/EX
 
     // Etapa MEM
     wire [31:0] m_alu_result;
@@ -75,6 +85,7 @@ module bne_test;
     wire m_mem_write;
     wire m_mem_to_reg;
     wire m_reg_write;
+    wire [2:0] m_bhw_type;
 
     wire [31:0] m_wb_read_data; // Datos leídos de memoria para la etapa WB
     wire [4:0] m_wb_rd; // Registro destino para la etapa WB
@@ -90,18 +101,16 @@ module bne_test;
     wire wb_mem_to_reg; // Señal de escritura de registro desde memoria para la etapa WB
     wire [31:0] wb_alu_result; // Resultado de la ALU para la etapa WB
 
-
-
     IF if_stage (
         .i_clk(i_clk),
         .i_reset(i_reset),
         .i_stall(stall), // No stall signal for now
         .i_pcsrc(pcsrc), // No branch taken for now
         .i_jump(jump), // No jump for now
-        .i_write_en(i_du_write_en), // No write enable for instruction memory
+        .i_write_en(i_du_write_en & ~o_du_halt), // No write enable for instruction memory
         .i_read_en(i_du_read_en), // Always read from instruction memory
         .i_data(i_du_data), // No data to write in instruction memory
-        .i_addr_wr(i_du_addr_wr), // No address to write in instruction memory
+        .i_addr_wr(i_du_inst_addr_wr), // No address to write in instruction memory
         .i_beq_dir(if_beq_jump_dir), // No branch direction for now
 
         .o_pc_plus_4(if_id_pc_plus_4), // Output PC + 4 (not connected)
@@ -140,11 +149,12 @@ module bne_test;
         .i_function_code(id_function_code), // Function code from IF_ID stage (not connected)
         .i_id_ex_reg_write(ex_reg_write), // Reg write signal from EX stage (not connected)
         .i_id_ex_mem_read(ex_read), // Mem read signal from EX stage (not connected)
-        .i_ex_m_alu_result(ex_m_alu_result), // ALU result from EX/MEM stage (not connected)
-        .i_ex_m_rd(ex_m_rd), // rd from EX/MEM stage (not connected)
+        .i_ex_m_alu_result(m_alu_result), // ALU result from EX/MEM stage (not connected)
+        .i_ex_m_rd(m_rd), // rd from EX/MEM stage (not connected)
         .i_id_ex_rt(ex_rt), // rt from ID/EX stage (not connected)
-        .i_ex_m_reg_write(ex_m_reg_write), // Reg write signal from EX/MEM stage (not connected)
-        .i_ex_m_memtoreg(ex_m_mem_to_reg), // Mem to reg signal from EX/MEM stage (not connected)
+        .i_ex_m_reg_write(m_reg_write), // Reg write signal from EX/MEM stage (not connected)
+        .i_ex_m_memtoreg(m_mem_to_reg), // Mem to reg signal from EX/MEM stage (not connected)
+        .i_du_reg_addr(i_du_inst_addr_wr[4:0]), // Register address for debug unit
 
         .o_pc_src(pcsrc), // Output pcsrc signal
         .o_data_1(id_ex_data_1), // Output data 1 for ID stage (not connected)
@@ -162,9 +172,12 @@ module bne_test;
         .o_mem_write(id_ex_mem_write), // Output mem write signal for ID stage (not connected)
         .o_mem_to_reg(id_ex_mem_to_reg), // Output mem to reg signal for ID stage (not connected)
         .o_reg_write(id_ex_reg_write), // Output reg write signal for ID stage (not connected)
-        .o_jump(jump), // Output jum        .o_flush_idex(flush_idex), // Output flush ID/EX signal for ID stage (not connected)
+        .o_jump(jump), // Output jump signal for ID stage (not connected)
+        .o_bhw_type(id_ex_bhw_type), // Output bhw type signal for
         .o_flush_idex(flush_idex), // Output flush ID/EX signal for ID stage (not connected)
-        .o_stall(stall) // Output stall signal for ID stage (not connected)p signal for ID stage (not connected)
+        .o_stall(stall), // Output stall signal for ID stage (not connected)p signal for ID stage (not connected)
+        .o_halt(o_du_halt), // Output halt signal for ID stage (not connected)
+        .o_du_reg_data(o_du_regs_mem_data)
     );  
 
     ID_EX id_ex_segmentation_register (
@@ -184,6 +197,7 @@ module bne_test;
         .id_m_mem_write(id_ex_mem_write), // Mem write signal from ID stage (not connected)
         .id_wb_mem_to_reg(id_ex_mem_to_reg), // Mem to reg signal from ID stage (not connected)
         .id_wb_reg_write(id_ex_reg_write), // Reg write signal from ID stage (not connected)
+        .id_bhw_type(id_ex_bhw_type), // BHW type signal from ID stage (not connected)
 
         .ex_dato_1(ex_data_1), // Output data 1 for EX stage (not connected)
         .ex_dato_2(ex_data_2), // Output data 2 for EX stage (not connected)
@@ -198,7 +212,8 @@ module bne_test;
         .ex_m_mem_read(ex_read), // Output mem read signal for EX stage (not connected)
         .ex_m_mem_write(ex_write), // Output mem write signal for EX stage (not connected)
         .ex_wb_mem_to_reg(ex_to_reg), // Output mem to reg signal for EX stage (not connected)
-        .ex_wb_reg_write(ex_reg_write) // Output reg write signal for EX stage (not connected)
+        .ex_wb_reg_write(ex_reg_write), // Output reg write signal for EX stage (not connected)
+        .ex_bhw_type(ex_bhw_type) // Output bhw type signal for EX stage (not connected)
     );  
 
     EX ex_stage (
@@ -224,6 +239,7 @@ module bne_test;
         .i_ex_m_rd(m_rd), // rd from EX stage (not connected)
         .i_m_wb_reg_write(wb_reg_write), // Reg write signal from MEM stage (not connected)
         .i_m_wb_rd(wb_rd), // Write back rd from MEM stage (not connected)
+        .i_ex_m_bhw_type(ex_bhw_type), // BHW type signal from EX stage (not connected)
 
         .o_ex_m_alu_result(ex_m_alu_result), // Output ALU result for EX stage (not connected)
         .o_ex_m_write_data(ex_m_write_data), // Output write data for EX stage
@@ -231,7 +247,8 @@ module bne_test;
         .o_ex_m_mem_read(ex_m_mem_read), // Output mem read signal for EX stage (not connected)
         .o_ex_m_mem_write(ex_m_mem_write), // Output mem write signal for EX stage (not connected)
         .o_ex_m_mem_to_reg(ex_m_mem_to_reg), // Output mem to reg signal for EX stage (not connected)
-        .o_ex_m_reg_write(ex_m_reg_write) // Output reg write signal for EX stage (not connected)  
+        .o_ex_m_reg_write(ex_m_reg_write), // Output reg write signal for EX stage (not connected) 
+        .o_ex_m_bhw_type(ex_m_bhw_type) // Output bhw type signal for EX stage (not connected) 
     );
 
     EX_M ex_m_segmentation_register (
@@ -244,6 +261,7 @@ module bne_test;
         .i_ex_m_mem_write(ex_m_mem_write), // Mem write signal from EX stage
         .i_ex_m_mem_to_reg(ex_m_mem_to_reg), // Mem to reg signal
         .i_ex_m_reg_write(ex_m_reg_write), // Reg write signal from EX stage
+        .i_ex_m_bhw_type(ex_m_bhw_type), // BHW type signal from EX stage
 
         .o_ex_m_alu_result(m_alu_result), // Output ALU result for MEM stage
         .o_ex_m_write_data(m_write_data), // Output write data for MEM stage
@@ -251,7 +269,8 @@ module bne_test;
         .o_ex_m_mem_read(m_mem_read), // Output mem read signal for MEM stage
         .o_ex_m_mem_write(m_mem_write), // Output mem write signal for MEM stage
         .o_ex_m_mem_to_reg(m_mem_to_reg), // Output mem to reg signal
-        .o_ex_m_reg_write(m_reg_write) // Output reg write signal for MEM stage
+        .o_ex_m_reg_write(m_reg_write), // Output reg write signal for MEM stage
+        .o_ex_m_bhw_type(m_bhw_type) // Output bhw type signal for MEM stage
     );
 
     MEM mem_stage (
@@ -264,12 +283,16 @@ module bne_test;
         .i_m_mem_write(m_mem_write),
         .i_m_mem_to_reg(m_mem_to_reg),
         .i_m_reg_write(m_reg_write),
+        .i_m_bhw_type(m_bhw_type),
+        .i_du_mem_addr(i_du_inst_addr_wr), // Address for debug unit
 
         .o_m_wb_read_data(m_wb_read_data),
         .o_m_rd(m_wb_rd),
+        .o_m_wb_rd(m_wb_rd),
         .o_m_wb_alu_result(m_wb_alu_result),
         .o_m_wb_mem_to_reg(m_wb_mem_to_reg),
-        .o_m_wb_reg_write(m_wb_reg_write)
+        .o_m_wb_reg_write(m_wb_reg_write),
+        .o_du_mem_data(o_du_mem_data) // Data read from memory for debug unit
     );
 
     M_WB m_wb_segmentation_register (
@@ -292,12 +315,9 @@ module bne_test;
         .i_wb_data(wb_data),
         .i_wb_mem_to_reg(wb_mem_to_reg),
         .i_wb_alu_result(wb_alu_result),
-        .i_wb_reg_write(wb_reg_write),
-        .i_wb_rd(wb_rd),
 
         .o_wb_write_data(wb_write_data)
     );
-
     // Generador de clock
     initial i_clk = 0;
     always #5 i_clk = ~i_clk;
@@ -309,7 +329,7 @@ module bne_test;
         i_du_write_en = 0;
         i_du_read_en = 0;
         i_du_data = 0;
-        i_du_addr_wr = 0;
+        i_du_inst_addr_wr = 0;
         #12;
         i_reset = 0;
 
@@ -318,17 +338,17 @@ module bne_test;
         i_du_write_en = 1;
         i_du_read_en = 0;
         i_du_data = 32'b001000_00010_00011_0000000000001000; // ADDI $v0, $v1, 8
-        i_du_addr_wr = 32'b000000; //Direccion de memoria 24 en binario
+        i_du_inst_addr_wr = 32'b000000; //Direccion de memoria 24 en binario
         @(negedge i_clk);
         i_du_write_en = 1;
         i_du_read_en = 0;
         i_du_data = 32'b000101_00010_00011_0000000000001000; // BNE $v0, $v1, 8
-        i_du_addr_wr = 32'b000100; //Direccion de memoria 4 en binario
+        i_du_inst_addr_wr = 32'b000100; //Direccion de memoria 4 en binario
         @(negedge i_clk);
         i_du_write_en = 1;
         i_du_read_en = 0;
         i_du_data = 32'b001000_00000_00100_0000000000000001; // ADDI $zero, $a0, 1
-        i_du_addr_wr = 32'b101000; //Direccion de memoria 4 en binario
+        i_du_inst_addr_wr = 32'b101000; //Direccion de memoria 4 en binario
         @(negedge i_clk);
         i_du_write_en = 0;
         i_du_read_en = 1;
