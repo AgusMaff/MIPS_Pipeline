@@ -13,10 +13,9 @@ module TOP
     input               RsRx        ,
 
     output              RsTx        ,
-    output              rx_led      ,
-    output              tx_led      ,
     output              idle_led    ,
     output              halt_led    ,
+    output              start_led   , // LED indicating the start state
     output              running_led // LED indicating the system is running
 );
     wire clk_50mhz;
@@ -27,6 +26,7 @@ module TOP
     wire [NB_REG-1:0] inst_to_load;
     wire [NB_REG-1:0] addr_to_load;
     wire [4:0] reg_addr_to_read;
+    wire [31:0] mem_addr_to_read;
     wire inst_mem_write_enable;
     wire inst_mem_read_enable;
     wire reset_from_du;
@@ -75,8 +75,8 @@ module TOP
         .o_mips_inst_mem_write_en(inst_mem_write_enable),
         .o_mips_inst_mem_read_en(inst_mem_read_enable),
         .o_mips_reset(reset_from_du),
-        .o_tx_confirmation(tx_led), // transmit confirmation signal 
-        .o_rx_confirmation(rx_led), // receive confirmation signal
+        .o_du_reg_addr_sel(reg_addr_to_read),
+        .o_du_mem_addr_sel(mem_addr_to_read), 
         .o_idle_led(idle_led), // LED indicating idle state
         .o_start_led(start_led), // LED indicating start state
         .o_running_led(running_led) // LED indicating the system is running
@@ -87,6 +87,8 @@ module TOP
         .i_reset(i_reset | reset_from_du), // Reset signal from debug unit
         .i_du_data(inst_to_load),
         .i_du_inst_addr_wr(addr_to_load),
+        .i_du_mem_addr(mem_addr_to_read),
+        .i_du_reg_addr(reg_addr_to_read),
         .i_du_write_en(inst_mem_write_enable),
         .i_du_read_en(inst_mem_read_enable),
     

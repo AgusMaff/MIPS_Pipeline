@@ -5,6 +5,8 @@ module PIPELINE (
     input wire i_reset,
     input wire [31:0] i_du_data,
     input wire [31:0] i_du_inst_addr_wr,
+    input wire [31:0] i_du_mem_addr,
+    input wire [4:0] i_du_reg_addr,
     input wire i_du_write_en,
     input wire i_du_read_en,
 
@@ -161,7 +163,7 @@ module PIPELINE (
         .i_id_ex_rt(ex_rt), // rt from ID/EX stage (not connected)
         .i_ex_m_reg_write(m_reg_write), // Reg write signal from EX/MEM stage (not connected)
         .i_ex_m_memtoreg(m_mem_to_reg), // Mem to reg signal from EX/MEM stage (not connected)
-        .i_du_reg_addr(i_du_inst_addr_wr[4:0]), // Register address for debug unit
+        .i_du_reg_addr(i_du_reg_addr), // Register address for debug unit
 
         .o_pc_src(pcsrc), // Output pcsrc signal
         .o_data_1(id_ex_data_1), // Output data 1 for ID stage (not connected)
@@ -298,7 +300,7 @@ module PIPELINE (
         .i_m_mem_to_reg(m_mem_to_reg),
         .i_m_reg_write(m_reg_write),
         .i_m_bhw_type(m_bhw_type),
-        .i_du_mem_addr(i_du_inst_addr_wr), // Address for debug unit
+        .i_du_mem_addr(i_du_mem_addr), // Address for debug unit
 
         .o_m_wb_read_data(m_wb_read_data),
         .o_m_rd(m_wb_rd),

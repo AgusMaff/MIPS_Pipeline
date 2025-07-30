@@ -40,9 +40,7 @@ module MEM (
     );
 
     always @(*) begin
-        if (i_reset) begin
-            read_data = 32'b0; // Resetea el registro de datos leídos
-        end else if (i_m_mem_read) begin // Carga (lectura)
+        if (i_m_mem_read) begin // Carga (lectura)
             case(i_m_bhw_type[2:0])
                 3'b001: begin // LW
                     read_data = mem_data_out; // Datos leídos de memoria

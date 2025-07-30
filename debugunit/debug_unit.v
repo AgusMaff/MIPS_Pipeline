@@ -18,13 +18,13 @@ module debug_unit
     input [NB_R_INT-1:0] i_latches_data,
 
     output              o_uart_tx_data_out,
-    output[NB_REG-1:0]  o_mips_inst_data,
-    output[NB_REG-1:0]  o_mips_inst_mem_addr_wr,
+    output [NB_REG-1:0] o_mips_inst_data,
+    output [NB_REG-1:0] o_mips_inst_mem_addr_wr,
     output              o_mips_inst_mem_write_en,
     output              o_mips_inst_mem_read_en,
     output              o_mips_reset,
-    output              o_tx_confirmation,
-    output              o_rx_confirmation,
+    output [4:0]        o_du_reg_addr_sel,
+    output [31:0]       o_du_mem_addr_sel,
     output              o_idle_led,
     output              o_start_led, 
     output              o_running_led // LED indicating the system is running
@@ -136,12 +136,12 @@ always @(*) begin
             else if (du_data_readed_from_rx_fifo == LOAD_INSTRUCTION_CMD) begin
                 next_state = SEND_ACK;
                 next_waiting_state = LOAD_INSTRUCTION;
-                next_data_to_tx = ACK_BYTE;
+                next_data_to_tx = ACK_BYTE; // Enviar ACK
             end
             else if (du_data_readed_from_rx_fifo == RUN_CMD) begin
                 next_state = SEND_ACK;
                 next_waiting_state = RUN;
-                next_data_to_tx = ACK_BYTE;
+                next_data_to_tx = ACK_BYTE; // Enviar ACK
             end
             else if (du_data_readed_from_rx_fifo == RESET_CMD) begin
                 next_state = RESET;
@@ -168,7 +168,7 @@ always @(*) begin
             else begin
                 next_inst_to_mem = {inst_to_mem[23:0], du_data_readed_from_rx_fifo};
                 next_counter = counter + 1;
-                next_data_to_tx = ACK_BYTE;
+                next_data_to_tx = ACK_BYTE; // Enviar ACK
                 
                 if (counter == 2'b11) begin
                     next_counter = 0;
@@ -185,7 +185,6 @@ always @(*) begin
         WRITE_INST: begin
             if (inst_to_mem == HALT_CODE) begin
                 next_state = START;
-                next_addr_inst = 0;
             end
             else begin
                 next_addr_inst = addr_inst + 4;
@@ -198,7 +197,7 @@ always @(*) begin
                 // Cuando termina la ejecución, empieza a enviar datos
                 next_counter = 0;
                 next_addr_inst = 0;
-                next_state = SEND_REG;
+                next_state = SEND;
             end
         end
 
@@ -208,7 +207,7 @@ always @(*) begin
                 next_waiting_state = SEND;
             end
             else begin
-                next_data_to_tx = i_reg_data[(31-counter[1:0]*8)-:8];
+                next_data_to_tx = i_reg_data[(31-counter*8)-:8];
                 next_counter = counter + 1;
                 next_state = SEND_REG;
             end
@@ -223,7 +222,7 @@ always @(*) begin
                 // Envía registros byte a byte (big endian)
                 next_data_to_tx = i_reg_data[(31-counter*8) -: 8];
                 next_counter = counter + 1;
-                
+
                 if (counter == 2'b11) begin
                     // Completó el envío de un registro de 32 bits
                     next_counter = 0;
@@ -249,16 +248,18 @@ always @(*) begin
                 // Envía datos de memoria byte a byte (big endian)
                 next_data_to_tx = i_mem_data[(31-counter*8) -: 8];
                 next_counter = counter + 1;
-                
+
                 if (counter == 2'b11) begin
                     // Completó el envío de una palabra de 32 bits
                     next_counter = 0;
-                    next_addr_inst = addr_inst + 4; // Direcciones de memoria van de 4 en 4
-                    
-                    if (addr_inst[6:0] == 8'd252) begin // 124 en decimal (31*4)
-                        // Terminó de enviar toda la memoria (32 palabras)
+
+                    if (addr_inst[7:2] == 6'd63) begin // Cambiado: >= en lugar de ==
+                        // Terminó de enviar toda la memoria (64 palabras)
                         next_addr_inst = 0;
                         next_state = SEND_REG_INT;
+                    end else begin
+                        // Pasa a la siguiente dirección de memoria
+                        next_addr_inst = addr_inst + 4;
                     end
                 end
             end
@@ -306,7 +307,7 @@ always @(*) begin
 end
 
 // Lógica de salida
-always @(*) begin  
+always @(*) begin
     case (state)
         IDLE: begin
             read_uart_reg = 1'b0;
@@ -315,8 +316,6 @@ always @(*) begin
             read_mem_reg = 1'b0;
             enable_reg = 1'b0;
             reset_mips_reg = 1'b0;   
-            tx_confirmation = 1'b0;
-            rx_confirmation = 1'b0;
             idle_led = 1'b1;
             start_led = 1'b0;
             running_led = 1'b0; // LED indicating the system is idle
@@ -329,8 +328,6 @@ always @(*) begin
             read_mem_reg = 1'b0;
             enable_reg = 1'b0;
             reset_mips_reg = 1'b0;    
-            tx_confirmation = 1'b0;
-            rx_confirmation = 1'b1;
             idle_led = 1'b0;
             start_led = 1'b1;
             running_led = 1'b0; // LED indicating the system is starting
@@ -343,8 +340,6 @@ always @(*) begin
             read_mem_reg = 1'b0;
             enable_reg = 1'b0;
             reset_mips_reg = 1'b0;
-            tx_confirmation = 1'b1;
-            rx_confirmation = 1'b0;
             idle_led = 1'b0;
             start_led = 1'b0;
             running_led = 1'b0; // LED indicating the system is running
@@ -357,8 +352,6 @@ always @(*) begin
             read_mem_reg = 1'b0;
             enable_reg = 1'b0;
             reset_mips_reg = 1'b0;
-            tx_confirmation = 1'b0;
-            rx_confirmation = 1'b0;
             idle_led = 1'b0;
             start_led = 1'b0;
             running_led = 1'b0; // LED indicating the system is running
@@ -371,8 +364,6 @@ always @(*) begin
             read_mem_reg = 1'b1;
             enable_reg = 1'b1;
             reset_mips_reg = 1'b0;
-            tx_confirmation = 1'b0;
-            rx_confirmation = 1'b0;
             idle_led = 1'b0;
             start_led = 1'b0;
             running_led = 1'b1; // LED indicating the system is running
@@ -385,8 +376,6 @@ always @(*) begin
             read_mem_reg = 1'b0;
             enable_reg = 1'b0;
             reset_mips_reg = 1'b0;
-            tx_confirmation = 1'b0;
-            rx_confirmation = 1'b1;
             idle_led = 1'b0;
             start_led = 1'b0;
             running_led = 1'b0; // LED indicating the system is idle
@@ -399,8 +388,6 @@ always @(*) begin
             read_mem_reg = 1'b0;
             enable_reg = 1'b0;
             reset_mips_reg = 1'b0;
-            tx_confirmation = 1'b1;
-            rx_confirmation = 1'b0;
             idle_led = 1'b0;
             start_led = 1'b0;
             running_led = 1'b0; // LED indicating the system is idle
@@ -413,8 +400,6 @@ always @(*) begin
             read_mem_reg = 1'b0;
             enable_reg = 1'b0;
             reset_mips_reg = 1'b1;
-            tx_confirmation = 1'b0;
-            rx_confirmation = 1'b0;
             idle_led = 1'b0;
             start_led = 1'b0;
             running_led = 1'b0; // LED indicating the system is idle
@@ -427,8 +412,6 @@ always @(*) begin
             read_mem_reg = 1'b0;
             enable_reg = 1'b0;
             reset_mips_reg = 1'b0;
-            tx_confirmation = 1'b0;
-            rx_confirmation = 1'b0;
             idle_led = 1'b1;
             start_led = 1'b0;
             running_led = 1'b0; // LED indicating the system is idle
@@ -445,10 +428,10 @@ assign o_mips_inst_mem_addr_wr = addr_inst;
 assign o_mips_inst_mem_write_en = write_mem_reg;
 assign o_mips_inst_mem_read_en = read_mem_reg;
 assign o_mips_reset = reset_mips_reg;
+assign o_du_reg_addr_sel = addr_inst[4:0]; // Asignación de dirección de registro
+assign o_du_mem_addr_sel = {26'b0, addr_inst[7:2], 2'b00}; // Asignación de dirección de memoria
 
 // LEDs de debug
-assign o_tx_confirmation = tx_confirmation;
-assign o_rx_confirmation = rx_confirmation;
 assign o_idle_led = idle_led;
 assign o_start_led = start_led;
 assign o_running_led = running_led;

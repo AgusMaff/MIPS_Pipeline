@@ -17,20 +17,20 @@ module REGMEM (
     reg [31:0] registers [0:31];
 
     // Lectura combinacional
-    assign data_1 = registers[rs];
-    assign data_2 = registers[rt];
+    assign data_1 = (rs == 5'b00000) ? 32'b0 : registers[rs];
+    assign data_2 = (rt == 5'b00000) ? 32'b0 : registers[rt];
 
-    assign du_reg_data = registers[du_reg_addr];
+    assign du_reg_data = (du_reg_addr == 5'b00000) ? 32'b0 : registers[du_reg_addr];
 
     integer i;
 
     // Escritura secuencial
-    always @(negedge clk or posedge reset) begin
+    always @(posedge clk or posedge reset) begin
         if (reset) begin
         for (i = 0; i < 32; i = i + 1) begin
-            registers[i] <= 0;
+            registers[i] <= 32'b0;
             end        
-        end else if (write_enable) begin
+        end else if (write_enable && (reg_addr != 5'b00000)) begin
             registers[reg_addr] <= write_data;
         end
     end
