@@ -12,24 +12,28 @@ module load_test;
     wire halt_wire;
     wire [63:0] w_IF_ID;
     wire [129:0] w_ID_EX;
-    wire [75:0]  w_EX_M ;
-    wire [70:0]  w_M_WB ;
+    wire [75:0]  w_EX_M;
+    wire [70:0]  w_M_WB;
     wire [31:0] reg_data_wire;
     wire [31:0] mem_data_wire;
+    reg  [31:0] mem_addr_to_read;
+    reg [31:0] reg_addr_to_read;
 
     PIPELINE pipeline (
         .i_clk(i_clk),
-        .i_reset(i_reset),
+        .i_reset(i_reset), // Reset signal from debug unit
         .i_du_data(i_du_data),
         .i_du_inst_addr_wr(i_du_addr_wr),
+        .i_du_mem_addr(mem_addr_to_read),
+        .i_du_reg_addr(reg_addr_to_read),
         .i_du_write_en(i_du_write_en),
         .i_du_read_en(i_du_read_en),
-    
-        .o_du_halt(halt_wire),
-        .o_du_if_id_data(w_IF_ID),
-        .o_du_id_ex_data(w_ID_EX),
-        .o_du_ex_m_data(w_EX_M),
-        .o_du_m_wb_data(w_M_WB),
+
+        .o_du_halt(halt_wire), // Señal de parada (HALT)
+        .o_du_if_id_data(w_IF_ID), // Datos de la etapa IF/ID
+        .o_du_id_ex_data(w_ID_EX), // Datos de la etapa ID/EX
+        .o_du_ex_m_data(w_EX_M), // Datos de la etapa EX/MEM
+        .o_du_m_wb_data(w_M_WB), // Datos de la etapa MEM/WB
         .o_du_regs_mem_data(reg_data_wire),
         .o_du_mem_data(mem_data_wire)
     );
@@ -53,58 +57,35 @@ module load_test;
         @(negedge i_clk);
         i_du_write_en = 1;
         i_du_read_en = 0;
-        i_du_data = 32'b001001_00010_00011_1111111111111111; // ADDI $v0, $v1, 65535
+        i_du_data = 32'h24430001; // ADDIU $v0, $v1, 65535
         i_du_addr_wr = 0;
         @(negedge i_clk);
         i_du_write_en = 1;
         i_du_read_en = 0;
-        i_du_data = 32'b101011_00000_00011_0000000000000111; // SW $zero, $v1, 7
+        i_du_data = 32'hAC030004; // SW $v1 , 4($zero)
         i_du_addr_wr = 4;
         @(negedge i_clk);
         i_du_write_en = 1;
         i_du_read_en = 0;
-        i_du_data = 32'b100000_00000_00100_0000000000000111; // LB $zero, $a0, 7
+        i_du_data = 32'hFC000000; // HALT
         i_du_addr_wr = 8;
-        @(negedge i_clk);
-        i_du_write_en = 1;
-        i_du_read_en = 0;
-        i_du_data = 32'b100001_00000_00101_0000000000000111; // LH $zero, $a1, 7
-        i_du_addr_wr = 12;
-        @(negedge i_clk);
-        i_du_write_en = 1;
-        i_du_read_en = 0;
-        i_du_data = 32'b100011_00000_00111_0000000000000111; // LW $zero, $a2, 7
-        i_du_addr_wr = 16;
-        @(negedge i_clk);
-        i_du_write_en = 1;
-        i_du_read_en = 0;
-        i_du_data = 32'b100100_00000_01001_0000000000000111; // LBU $zero, $a3, 7
-        i_du_addr_wr = 20;
-        @(negedge i_clk);
-        i_du_write_en = 1;
-        i_du_read_en = 0;
-        i_du_data = 32'b111111_00000_00000_0000000000000000; // HALT
-        i_du_addr_wr = 24;
-        @(negedge i_clk);
-        i_du_write_en = 1;
-        i_du_read_en = 0;
-        i_du_data = 32'b100101_00000_01010_0000000000000111; // LHU $zero, $a4, 7
-        i_du_addr_wr = 28;
-        @(negedge i_clk);
-        i_du_write_en = 1;
-        i_du_read_en = 0;
-        i_du_data = 32'b100111_00000_01011_0000000000000111; // LWU $zero, $a5, 7
-        i_du_addr_wr = 32;
-        @(negedge i_clk);
-        i_du_write_en = 1;
-        i_du_read_en = 0;
-        i_du_data = 32'b000000_01011_01010_01100_00000_100010; // SUB $a5, $a4, $a6
-        i_du_addr_wr = 36;
         @(negedge i_clk);
         i_du_write_en = 0;
         i_du_read_en = 1;
         // Esperar a que la instrucción pase por el pipeline
         repeat(16) @(posedge i_clk);
+        @(negedge i_clk);
+        i_du_write_en = 0;
+        i_du_read_en = 0;
+        mem_addr_to_read = 32'd0;
+        @(negedge i_clk);
+        i_du_write_en = 0;
+        i_du_read_en = 0;
+        mem_addr_to_read = 32'd4;
+        @(negedge i_clk);
+        i_du_write_en = 0;
+        i_du_read_en = 0;
+        mem_addr_to_read = 32'd8;
 
         @(negedge i_clk);
         i_du_write_en = 0;

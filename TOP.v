@@ -8,15 +8,12 @@ module TOP
     parameter NB_R_INT=341
 ) 
 (
-    input               clock       ,
-    input               i_reset     ,
-    input               RsRx        ,
+    input               clk       ,
+    input               reset     ,
+    input               uart_rx        ,
 
-    output              RsTx        ,
-    output              idle_led    ,
-    output              halt_led    ,
-    output              start_led   , // LED indicating the start state
-    output              running_led // LED indicating the system is running
+    output              uart_tx        ,
+    output              [3:0] debugger_leds
 );
     wire clk_50mhz;
     wire halt_wire;
@@ -41,14 +38,14 @@ module TOP
      // Clock out ports
            .clk_out1(clk_50mhz),
      // Status and control signals
-           .reset(i_reset),
+           .reset(reset),
            .locked(),
     // Clock in ports
-           .clk_in1(clock)
+           .clk_in1(clk)
     );
 
     assign latches_data_wire = {w_IF_ID, w_ID_EX, w_EX_M, w_M_WB};
-    assign halt_led = halt_wire;
+    assign debugger_leds[3] = halt_wire;
 
     debug_unit #(
         .NB_REG   (NB_REG),
@@ -62,14 +59,14 @@ module TOP
     debug_unit
     (
         .i_du_clk(clk_50mhz),
-        .i_du_reset(i_reset),
-        .i_uart_rx_data_in(RsRx),
+        .i_du_reset(reset),
+        .i_uart_rx_data_in(uart_rx),
         .i_du_halt(halt_wire),
         .i_reg_data(reg_data_wire),
         .i_mem_data(mem_data_wire),
         .i_latches_data(latches_data_wire),
 
-        .o_uart_tx_data_out(RsTx),
+        .o_uart_tx_data_out(uart_tx),
         .o_mips_inst_data(inst_to_load),
         .o_mips_inst_mem_addr_wr(addr_to_load),
         .o_mips_inst_mem_write_en(inst_mem_write_enable),
@@ -77,14 +74,14 @@ module TOP
         .o_mips_reset(reset_from_du),
         .o_du_reg_addr_sel(reg_addr_to_read),
         .o_du_mem_addr_sel(mem_addr_to_read), 
-        .o_idle_led(idle_led), // LED indicating idle state
-        .o_start_led(start_led), // LED indicating start state
-        .o_running_led(running_led) // LED indicating the system is running
+        .o_idle_led(debugger_leds[0]), // LED indicating idle state
+        .o_start_led(debugger_leds[1]), // LED indicating start state
+        .o_running_led(debugger_leds[2]) // LED indicating the system is running
     );
 
     PIPELINE pipeline (
         .i_clk(clk_50mhz),
-        .i_reset(i_reset | reset_from_du), // Reset signal from debug unit
+        .i_reset(reset | reset_from_du), // Reset signal from debug unit
         .i_du_data(inst_to_load),
         .i_du_inst_addr_wr(addr_to_load),
         .i_du_mem_addr(mem_addr_to_read),

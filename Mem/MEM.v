@@ -40,10 +40,15 @@ module MEM (
     );
 
     always @(*) begin
-        if (i_m_mem_read) begin // Carga (lectura)
+        // Inicializar variables
+        read_data = 32'b0;
+        data_to_mem = 32'b0;
+        
+        // Lógica de lectura
+        if (i_m_mem_read) begin
             case(i_m_bhw_type[2:0])
                 3'b001: begin // LW
-                    read_data = mem_data_out; // Datos leídos de memoria
+                    read_data = mem_data_out;
                 end
                 3'b010: begin // LH
                     read_data = {{16{mem_data_out[15]}}, mem_data_out[15:0]};
@@ -52,7 +57,7 @@ module MEM (
                     read_data = {{24{mem_data_out[7]}}, mem_data_out[7:0]};
                 end
                 3'b101: begin //LWU
-                    read_data = mem_data_out; // Datos leídos de memoria sin signo
+                    read_data = mem_data_out;
                 end
                 3'b111: begin // LHU
                     read_data = {16'b0, mem_data_out[15:0]};
@@ -64,7 +69,10 @@ module MEM (
                     read_data = 32'b0;
                 end
             endcase
-        end else if (i_m_mem_write) begin // Almacenamiento (escritura)
+        end
+        
+        // SEPARAR: Lógica de escritura independiente
+        if (i_m_mem_write) begin
             case(i_m_bhw_type[2:0])
                 3'b001: begin // SW
                     data_to_mem = i_mem_write_data;

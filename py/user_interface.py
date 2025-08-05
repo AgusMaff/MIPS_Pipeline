@@ -9,6 +9,9 @@ PARITY               = serial.PARITY_NONE
 LOAD_INSTRUCTION_CMD = 0x02
 RUN_CMD              = 0x05
 RESET_CMD            = 0x0C
+READ_REG_CMD         = 0x06
+READ_MEM_CMD         = 0x07
+READ_LATCHES_CMD     = 0x08
 
 OPCODES = {
     "ADD": 0x00, "SUB": 0x00, "AND": 0x00, "OR": 0x00, "XOR": 0x00, "NOR": 0x00, "SLT": 0x00,
@@ -48,24 +51,11 @@ def encode_instruction(mnemonic, operands):
     # Tipo R
     if opcode == 0x00:
         funct = FUNCTION_CODES[mnemonic]
-        if mnemonic in ["SLL", "SRL", "SRA"]:
-            # SLL rd, rt, sa
-            rd = REGS[operands[0]]
-            rt = REGS[operands[1]]
-            sa = int(operands[2])
-            rs = 0
-        elif mnemonic in ["SLLV", "SRLV", "SRAV"]:
-            # SLLV rd, rt, rs
-            rd = REGS[operands[0]]
-            rt = REGS[operands[1]]
-            rs = REGS[operands[2]]
-            sa = 0
-        else:
-            # ADD rd, rs, rt
-            rd = REGS[operands[0]]
-            rs = REGS[operands[1]]
-            rt = REGS[operands[2]]
-            sa = 0
+        rs = REGS[operands[0]]
+        rt = REGS[operands[1]]
+        rd = REGS[operands[2]]
+        sa = 0
+
         instr = (opcode << 26) | (rs << 21) | (rt << 16) | (rd << 11) | (sa << 6) | funct
         return instr
 
@@ -101,7 +91,6 @@ def encode_instruction(mnemonic, operands):
         return instr
     else:
         raise ValueError(f"Formato de instrucción no soportado: {mnemonic}")
-    
 
 def clear_serial_buffers(ser):
     """Limpia los buffers de RX y TX"""
@@ -113,24 +102,6 @@ def clear_serial_buffers(ser):
         discarded = ser.read(ser.in_waiting)
         print(f"Descartados {len(discarded)} bytes del buffer RX.")
         time.sleep(0.1)
-
-def receive_ack(ser):
-    """Recibe y verifica un ACK con timeout"""
-    timeout_count = 0
-    while timeout_count < 10:  # 1 segundo de timeout
-        if ser.in_waiting > 0:
-            ack = ser.read(1)
-            print(f"ACK recibido: {ack.hex() if ack else 'None'}")
-            if ack == b'\xAA':
-                return True
-            else:
-                print(f"ACK incorrecto: {ack.hex()}")
-                return False
-        time.sleep(0.1)
-        timeout_count += 1
-    
-    print("TIMEOUT: No se recibió ACK")
-    return False
 
 def receive_bytes(ser, num_bytes, description="datos"):
     """Recibe una cantidad específica de bytes con timeout"""
@@ -156,87 +127,229 @@ def receive_bytes(ser, num_bytes, description="datos"):
     
     return data
 
-def receive_regs_data(ser):
-    """Recibe datos de 32 registros (32 * 4 = 128 bytes)"""
-    print("Recibiendo registros...")
-    
-    # Recibir todos los bytes de los registros de una vez
-    reg_data = receive_bytes(ser, 128, "registros")
-    if reg_data is None:
-        return []
-    
-    # Convertir bytes a lista de registros (32 registros de 4 bytes cada uno)
-    regs_data = []
-    for i in range(32):
-        start_idx = i * 4
-        end_idx = start_idx + 4
-        reg_bytes = reg_data[start_idx:end_idx]
-        
-        # Mantener big endian (comunicación actual)
-        reg_value = int.from_bytes(reg_bytes, 'big')
-        
-        regs_data.append(reg_value)
-        
-        # Mostrar bytes individuales para debug si quieres
-        print(f"Registro ${i:02}: 0x{reg_value:08X}")
-    
-    return regs_data
-
-def receive_mem_data(ser):
-    """Recibe datos de 64 palabras de memoria (64 * 4 = 256 bytes)"""
-    print("Recibiendo memoria...")
-    
-    # Recibir todos los bytes de memoria de una vez
-    mem_data = receive_bytes(ser, 256, "memoria")
-    if mem_data is None:
-        return []
-    
-    # Convertir bytes a lista de palabras (64 palabras de 4 bytes cada una)
-    mem_words = []
-    for i in range(64):
-        start_idx = i * 4
-        end_idx = start_idx + 4
-        word_bytes = mem_data[start_idx:end_idx]
-        word_value = int.from_bytes(word_bytes, 'big')
-        mem_words.append(word_value)
-        print(f"Memoria[{i*4:03}]: 0x{word_value:08X}")
-    
-    return mem_words
-
-def receive_latches_data(ser):
-    """Recibe datos de latches (43 bytes)"""
-    print("Recibiendo latches...")
-    
-    latches_data = receive_bytes(ser, 43, "latches")
-    if latches_data is None:
-        return b''
-    
-    print(f"Latches recibidos: {latches_data.hex()}")
-    return latches_data
-
-def send_command_with_ack(ser, cmd):
-    """Envía un comando y espera ACK usando la función receive_ack"""
+def send_command(ser, cmd):
+    """Envía un comando SIN esperar ACK"""
     print(f"Enviando comando: 0x{cmd:02X}")
     ser.write(bytes([cmd]))
     ser.flush()
-    
-    return receive_ack(ser)
 
-def send_bytes_with_ack(ser, data):
-    """Envía bytes y verifica ACK con timeout usando receive_ack"""
-    for b in data:
+def send_instruction(ser, instruction):
+    """Envía una instrucción de 32 bits (4 bytes) SIN esperar ACK"""
+    instr_bytes = instruction.to_bytes(4, 'big')
+    print("Enviando instrucción (bytes):", [f"0x{b:02X}" for b in instr_bytes])
+    
+    # Enviar todos los bytes sin esperar ACK
+    for b in instr_bytes:
         print(f"Enviando byte: 0x{b:02X}")
         ser.write(bytes([b]))
         ser.flush()  # Forzar envío inmediato
-        
-        if not receive_ack(ser):
-            raise Exception("Error enviando byte, ACK no recibido")
+    
+    print("Instrucción enviada completamente.")
 
-def send_instruction(ser, instruction):
-    """Envía una instrucción de 32 bits (4 bytes) con ACK"""
-    instr_bytes = instruction.to_bytes(4, 'big')
-    print("Enviando instrucción (bytes):", [f"0x{b:02X}" for b in instr_bytes])
-    send_bytes_with_ack(ser, instr_bytes)
+def read_single_register(ser, reg_name):
+    """Lee un registro específico usando READ_REG_CMD"""
+    # Verificar que el registro existe
+    if reg_name not in REGS:
+        print(f"Error: Registro '{reg_name}' no válido")
+        print("Registros válidos:", list(REGS.keys()))
+        return None
+    
+    reg_num = REGS[reg_name]
+    print(f"Leyendo registro {reg_name} (número {reg_num})...")
+    
+    # Limpiar buffers antes de la operación
+    clear_serial_buffers(ser)
+    
+    # Enviar comando READ_REG SIN esperar ACK
+    send_command(ser, READ_REG_CMD)
+    print("Comando READ_REG enviado.")
+    time.sleep(0.1)
+    
+    # Enviar número de registro como byte SIN esperar ACK
+    print(f"Enviando número de registro: {reg_num} (0x{reg_num:02X})")
+    ser.write(bytes([reg_num]))
+    ser.flush()
+    print("Dirección de registro enviada.")
+    
+    # Dar tiempo para que la FPGA procese
+    time.sleep(0.1)
+    
+    # Recibir 4 bytes del valor del registro
+    reg_data = receive_bytes(ser, 4, f"registro {reg_name}")
+    if reg_data is None:
+        return None
+    
+    # Convertir a valor de 32 bits (big endian)
+    reg_value = int.from_bytes(reg_data, 'big')
+    
+    print(f"\n=== RESULTADO ===")
+    print(f"Registro {reg_name}: 0x{reg_value:08X} ({reg_value})")
+    print(f"Bytes recibidos: {[f'0x{b:02X}' for b in reg_data]}")
+    
+    return reg_value
+
+def read_memory_address(ser, mem_addr):
+    """Lee una dirección de memoria específica usando READ_MEM_CMD"""
+    # Verificar que la dirección sea múltiplo de 4
+    if mem_addr % 4 != 0:
+        print(f"Error: La dirección {mem_addr} no es múltiplo de 4")
+        return None
+    
+    # Verificar que la dirección esté en el rango válido (0-252)
+    if mem_addr < 0 or mem_addr > 252:
+        print(f"Error: La dirección {mem_addr} está fuera del rango válido (0-252)")
+        return None
+    
+    print(f"Leyendo dirección de memoria: {mem_addr} (0x{mem_addr:02X})...")
+    
+    # Limpiar buffers antes de la operación
+    clear_serial_buffers(ser)
+    
+    # Enviar comando READ_MEM SIN esperar ACK
+    send_command(ser, READ_MEM_CMD)
+    print("Comando READ_MEM enviado.")
+    time.sleep(0.1)
+    
+    # Enviar dirección de memoria como 1 byte (8 bits) SIN esperar ACK
+    mem_addr_byte = mem_addr & 0xFF  # Asegurar que sea solo 8 bits
+    print(f"Enviando dirección: {mem_addr} como byte 0x{mem_addr_byte:02X}")
+    ser.write(bytes([mem_addr_byte]))
+    ser.flush()
+    print("Dirección de memoria enviada.")
+    
+    # Dar tiempo para que la FPGA procese
+    time.sleep(0.1)
+    
+    # Recibir 4 bytes del valor de memoria
+    mem_data = receive_bytes(ser, 4, f"memoria dirección {mem_addr}")
+    if mem_data is None:
+        return None
+    
+    # Convertir a valor de 32 bits (big endian)
+    mem_value = int.from_bytes(mem_data, 'big')
+    
+    print(f"\n=== RESULTADO ===")
+    print(f"Memoria[{mem_addr}]: 0x{mem_value:08X} ({mem_value})")
+    print(f"Bytes recibidos: {[f'0x{b:02X}' for b in mem_data]}")
+    
+    return mem_value
+
+def read_latches(ser):
+    """Lee los latches del sistema usando READ_LATCHES_CMD con protocolo de confirmación"""
+    print("Leyendo latches del pipeline...")
+
+    # Limpiar buffers antes de la operación
+    clear_serial_buffers(ser)
+
+    # PASO 1: Enviar comando READ_LATCHES
+    send_command(ser, READ_LATCHES_CMD)
+    print("Comando READ_LATCHES enviado.")
+    time.sleep(0.1)
+
+    try:
+        # PASO 2: Recibir 64 bits (8 bytes) del registro IF/ID
+        print("\n=== RECIBIENDO REGISTRO IF/ID (64 bits) ===")
+        if_id_data = receive_bytes(ser, 8, "registro IF/ID")
+        if if_id_data is None:
+            return None
+        
+        # PASO 3: Enviar confirmación para IF/ID
+        print("Enviando confirmación para IF/ID...")
+        ser.write(bytes([0x01]))  # Confirmación
+        ser.flush()
+        time.sleep(0.05)
+
+        # PASO 4: Recibir 130 bits (17 bytes) del registro ID/EX
+        print("\n=== RECIBIENDO REGISTRO ID/EX (130 bits) ===")
+        id_ex_data = receive_bytes(ser, 17, "registro ID/EX")  # 130 bits = 16.25 bytes → 17 bytes
+        if id_ex_data is None:
+            return None
+        
+        # PASO 5: Enviar confirmación para ID/EX
+        print("Enviando confirmación para ID/EX...")
+        ser.write(bytes([0x01]))  # Confirmación
+        ser.flush()
+        time.sleep(0.05)
+
+        # PASO 6: Recibir 76 bits (10 bytes) del registro EX/M
+        print("\n=== RECIBIENDO REGISTRO EX/M (76 bits) ===")
+        ex_m_data = receive_bytes(ser, 10, "registro EX/M")  # 76 bits = 9.5 bytes → 10 bytes
+        if ex_m_data is None:
+            return None
+        
+        # PASO 7: Enviar confirmación para EX/M
+        print("Enviando confirmación para EX/M...")
+        ser.write(bytes([0x01]))  # Confirmación
+        ser.flush()
+        time.sleep(0.05)
+
+        # PASO 8: Recibir 70 bits (9 bytes) del registro M/WB
+        print("\n=== RECIBIENDO REGISTRO M/WB (70 bits) ===")
+        m_wb_data = receive_bytes(ser, 9, "registro M/WB")  # 70 bits = 8.75 bytes → 9 bytes
+        if m_wb_data is None:
+            return None
+
+        # PASO 9: Mostrar TODO el contenido RAW sin formateo
+        print("\n" + "="*80)
+        print("=== CONTENIDO RAW DE LOS LATCHES DEL PIPELINE ===")
+        print("="*80)
+        
+        # IF/ID - Mostrar todos los bytes
+        print(f"\n🔍 REGISTRO IF/ID (64 bits / 8 bytes):")
+        print(f"   Bytes HEX: {[f'0x{b:02X}' for b in if_id_data]}")
+        print(f"   Bytes DEC: {list(if_id_data)}")
+        if_id_hex = ''.join(f'{b:02X}' for b in if_id_data)
+        print(f"   Hex string: {if_id_hex}")
+        if_id_bin = ''.join(f'{b:08b}' for b in if_id_data)
+        print(f"   Binario: {if_id_bin}")
+        print(f"   Como int: {int.from_bytes(if_id_data, 'big')}")
+        
+        # ID/EX - Mostrar todos los bytes
+        print(f"\n🔍 REGISTRO ID/EX (130 bits / 17 bytes):")
+        print(f"   Bytes HEX: {[f'0x{b:02X}' for b in id_ex_data]}")
+        print(f"   Bytes DEC: {list(id_ex_data)}")
+        id_ex_hex = ''.join(f'{b:02X}' for b in id_ex_data)
+        print(f"   Hex string: {id_ex_hex}")
+        id_ex_bin = ''.join(f'{b:08b}' for b in id_ex_data)
+        print(f"   Binario: {id_ex_bin}")
+        print(f"   Longitud binario: {len(id_ex_bin)} bits")
+        
+        # EX/M - Mostrar todos los bytes
+        print(f"\n🔍 REGISTRO EX/M (76 bits / 10 bytes):")
+        print(f"   Bytes HEX: {[f'0x{b:02X}' for b in ex_m_data]}")
+        print(f"   Bytes DEC: {list(ex_m_data)}")
+        ex_m_hex = ''.join(f'{b:02X}' for b in ex_m_data)
+        print(f"   Hex string: {ex_m_hex}")
+        ex_m_bin = ''.join(f'{b:08b}' for b in ex_m_data)
+        print(f"   Binario: {ex_m_bin}")
+        print(f"   Longitud binario: {len(ex_m_bin)} bits")
+        
+        # M/WB - Mostrar todos los bytes
+        print(f"\n🔍 REGISTRO M/WB (70 bits / 9 bytes):")
+        print(f"   Bytes HEX: {[f'0x{b:02X}' for b in m_wb_data]}")
+        print(f"   Bytes DEC: {list(m_wb_data)}")
+        m_wb_hex = ''.join(f'{b:02X}' for b in m_wb_data)
+        print(f"   Hex string: {m_wb_hex}")
+        m_wb_bin = ''.join(f'{b:08b}' for b in m_wb_data)
+        print(f"   Binario: {m_wb_bin}")
+        print(f"   Longitud binario: {len(m_wb_bin)} bits")
+        
+        print("\n" + "="*80)
+        print("✅ DUMP RAW COMPLETADO - Revisar si se reciben todos los datos")
+        print("="*80)
+        
+        return {
+            'if_id': if_id_data,
+            'id_ex': id_ex_data,
+            'ex_m': ex_m_data,
+            'm_wb': m_wb_data
+        }
+        
+    except Exception as e:
+        print(f"❌ Error durante la lectura de latches: {e}")
+        clear_serial_buffers(ser)
+        return None
+
 
 def main():
     try:
@@ -258,18 +371,16 @@ def main():
     clear_serial_buffers(ser)
 
     while True:
-        accion = input("¿Qué desea hacer? (1: Cargar instrucciones, 2: Ejecutar programa, 3: Reiniciar, 4: Salir): ")
-        
+        print("\n=== MENÚ PRINCIPAL ===")
+        accion = input("¿Qué desea hacer? (1: Cargar instrucciones, 2: Ejecutar programa, 3: Leer registro, 4: Leer memoria, 5: Leer latches, 6: Reiniciar, 7: Salir): ")
+
         if accion == "1":
             # Limpiar buffers antes de cargar instrucciones
             clear_serial_buffers(ser)
             
-            # Enviar comando LOAD_INSTRUCTION y esperar ACK
-            if not send_command_with_ack(ser, LOAD_INSTRUCTION_CMD):
-                print("Error: No se pudo enviar comando LOAD_INSTRUCTION")
-                continue
-                
-            print("Comando LOAD_INSTRUCTION enviado y confirmado.")
+            # Enviar comando LOAD_INSTRUCTION SIN esperar ACK
+            send_command(ser, LOAD_INSTRUCTION_CMD)
+            print("Comando LOAD_INSTRUCTION enviado.")
             
             while True:
                 instr_str = input("Ingrese instrucción (ej: ADD $v0 $v1 $a0, HALT para terminar): ")
@@ -293,52 +404,76 @@ def main():
             # Limpiar buffers antes de ejecutar
             clear_serial_buffers(ser)
             
-            # Enviar comando RUN y esperar ACK
-            if not send_command_with_ack(ser, RUN_CMD):
-                print("Error: No se pudo enviar comando RUN")
-                continue
-                
-            print("Comando RUN enviado y confirmado. Esperando resultados...")
-            
-            try:
-                # Recibir datos usando las nuevas funciones
-                regs = receive_regs_data(ser)
-                mem = receive_mem_data(ser)
-                latches = receive_latches_data(ser)
-                
-                print("Recepción finalizada.")
-                print("\n=== RESUMEN REGISTROS ===")
-                for idx, val in enumerate(regs):
-                    if val != 0:  # Solo mostrar registros no cero
-                        print(f"${idx:02}: 0x{val:08X}")
-                
-                print("\n=== RESUMEN MEMORIA ===")
-                for idx, val in enumerate(mem):
-                    if val != 0:  # Solo mostrar memoria no cero
-                        print(f"Mem[{idx*4:03}]: 0x{val:08X}")
-                
-                print("\n=== LATCHES (hex) ===")
-                print(latches.hex())
-                
-            except Exception as e:
-                print(f"Error recibiendo datos: {e}")
-                clear_serial_buffers(ser)
+            # Enviar comando RUN SIN esperar ACK
+            send_command(ser, RUN_CMD)
+            print("Comando RUN enviado.")
+            print("El programa MIPS está ejecutándose...")
+            print("Cuando termine la ejecución, use la opción 3 para leer registros individuales.")
                 
         elif accion == "3":
+            # Leer registro específico
+            print("\n=== LEER REGISTRO ESPECÍFICO ===")
+            print("Registros disponibles:")
+            reg_names = list(REGS.keys())
+            for i, reg in enumerate(reg_names):
+                print(f"{reg:>6}", end="")
+                if (i + 1) % 8 == 0:  # 8 registros por línea
+                    print()
+            print()  # Nueva línea final
+            
+            reg_name = input("Ingrese el nombre del registro (ej: $v0, $t1, etc.): ").strip()
+            
+            # Agregar $ si no lo tiene
+            if not reg_name.startswith('$'):
+                reg_name = '$' + reg_name
+            
+            try:
+                read_single_register(ser, reg_name)
+            except Exception as e:
+                print(f"Error leyendo registro: {e}")
+                clear_serial_buffers(ser)
+
+        elif accion == "4":
+            # Leer memoria específica
+            print("\n=== LEER MEMORIA DE DATOS ===")
+            print("Direcciones válidas desde 0 hasta 252 (múltiplos de 4)")
+            
+            addr_str = input("Ingrese dirección de memoria (decimal o 0xHEX): ").strip()
+            
+            try:
+                # Permitir entrada en decimal o hexadecimal
+                if addr_str.startswith('0x') or addr_str.startswith('0X'):
+                    mem_addr = int(addr_str, 16)
+                else:
+                    mem_addr = int(addr_str)
+                
+                read_memory_address(ser, mem_addr)
+            except ValueError:
+                print("Error: Ingrese un número válido (decimal o 0xHEX)")
+            except Exception as e:
+                print(f"Error leyendo memoria: {e}")
+                clear_serial_buffers(ser)
+        elif accion == "5":
+            # Leer latches (nueva funcionalidad)
+            print("\n=== LEER LATCHES ===")
+            try:
+                read_latches(ser)
+            except Exception as e:
+                print(f"Error leyendo latches: {e}")
+                clear_serial_buffers(ser)
+        elif accion == "6":
             # Limpiar buffers antes de reset
             clear_serial_buffers(ser)
             
-            # Enviar comando RESET (sin esperar ACK para reset)
-            print(f"Enviando comando RESET: 0x{RESET_CMD:02X}")
-            ser.write(bytes([RESET_CMD]))
-            ser.flush()
+            # Enviar comando RESET SIN esperar ACK
+            send_command(ser, RESET_CMD)
             print("Comando RESET enviado.")
             time.sleep(0.5)  # Esperar que el reset se complete
             
             # Limpiar buffers después del reset
             clear_serial_buffers(ser)
             
-        elif accion == "4":
+        elif accion == "7":
             print("Saliendo del programa.")
             break
         else:
