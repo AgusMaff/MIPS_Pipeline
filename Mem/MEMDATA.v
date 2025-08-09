@@ -6,7 +6,7 @@ module MEMDATA (
     input wire [31:0] mem_addr,
     input wire [31:0] mem_data_in,
     input wire mem_write_enable,
-    input wire [31:0] du_mem_addr,
+    input wire [7:0] du_mem_addr,
 
     output wire [31:0] mem_data_out,
     output wire [31:0] du_mem_data

@@ -2,19 +2,50 @@
 
 module PIPELINE (
     input wire i_clk,
+    input wire i_clk_en, // Enable clock signal
     input wire i_reset,
     input wire [31:0] i_du_data,
     input wire [31:0] i_du_inst_addr_wr,
-    input wire [31:0] i_du_mem_addr,
+    input wire [7:0] i_du_mem_addr,
     input wire [4:0] i_du_reg_addr,
     input wire i_du_write_en,
     input wire i_du_read_en,
 
     output wire o_du_halt, // Señal de parada (HALT)
-    output wire [63:0] o_du_if_id_data, // Datos de la etapa IF/ID
-    output wire [129:0] o_du_id_ex_data, // Datos de la etapa ID/EX
-    output wire [75:0] o_du_ex_m_data, // Datos de la etapa EX/MEM
-    output wire [70:0] o_du_m_wb_data, // Datos de la etapa MEM/WB
+
+    output wire [31:0] o_du_if_id_pc_plus_4,
+    output wire [31:0] o_du_if_id_instruction,
+
+    output wire [31:0] o_du_id_ex_data_1,
+    output wire [31:0] o_du_id_ex_data_2,
+    output wire [4:0] o_du_id_ex_rs,
+    output wire [4:0] o_du_id_ex_rt,
+    output wire [4:0] o_du_id_ex_rd,
+    output wire [5:0] o_du_id_ex_function_code,
+    output wire [31:0] o_du_id_ex_extended_beq_offset,
+    output wire o_du_id_ex_reg_dest,
+    output wire o_du_id_ex_alu_src,
+    output wire [3:0] o_du_id_ex_alu_op,
+    output wire o_du_id_ex_mem_read,
+    output wire o_du_id_ex_mem_write,
+    output wire o_du_id_ex_mem_to_reg,
+    output wire o_du_id_ex_reg_write,
+    output wire [2:0] o_du_id_ex_bhw_type,
+
+    output wire [4:0] o_du_ex_m_rd,
+    output wire [31:0] o_du_ex_m_alu_result,
+    output wire [31:0] o_du_ex_m_write_data,
+    output wire o_du_ex_m_mem_read,
+    output wire o_du_ex_m_mem_write,
+    output wire o_du_ex_m_mem_to_reg,
+    output wire o_du_ex_m_reg_write,
+    output wire [2:0] o_du_ex_m_bhw_type,
+
+    output wire [31:0] o_du_m_wb_read_data,
+    output wire [31:0] o_du_m_wb_alu_result,
+    output wire [4:0] o_du_m_wb_rd,
+    output wire o_du_m_wb_reg_write,
+
     output wire [31:0] o_du_regs_mem_data,
     output wire [31:0] o_du_mem_data
 );
@@ -23,7 +54,7 @@ module PIPELINE (
     wire jump; // Señal de salto
     wire flush_idex; // Señal de flush para la etapa ID/EX
     wire stall; // Señal de stall
-    wire halt_wire; // Señal de parada (HALT)
+    wire end_program;
     reg halt_latched; // Registro para latchear la señal de parada
 
     // Etapa IF
@@ -55,6 +86,7 @@ module PIPELINE (
     wire id_ex_mem_to_reg; // Señal de escritura de registro desde memoria
     wire id_ex_reg_write; // Señal de escritura de registro
     wire [2:0] id_ex_bhw_type; // Tipo de instrucción (Byte, Halfword, Word)
+    wire id_ex_halt; // Señal de parada
 
     //Etapa EX
     wire [31:0] ex_data_1; // Dato 1 de la etapa ID/EX
@@ -71,6 +103,7 @@ module PIPELINE (
     wire ex_write; // Señal de escritura de memoria de la etapa ID/EX
     wire ex_to_reg; // Señal de escritura de registro desde memoria de la etapa ID/EX
     wire [2:0] ex_bhw_type; // Tipo de instrucción (Byte, Halfword, Word) de la etapa ID/EX
+    wire ex_halt; // Señal de parada de la etapa ID/EX
 
     wire [4:0] ex_m_rd; // Registro destino rd de la etapa ID/EX
     wire [31:0] ex_m_alu_result; // Resultado de la ALU de la etapa ID/EX
@@ -80,6 +113,7 @@ module PIPELINE (
     wire ex_m_mem_to_reg; // Señal de escritura de registro desde memoria de la etapa ID/EX
     wire ex_m_reg_write; // Señal de escritura de registro de la etapa ID/EX
     wire [2:0] ex_m_bhw_type; // Tipo de instrucción (Byte, Halfword, Word) de la etapa ID/EX
+    wire ex_m_halt; // Señal de parada de la etapa ID/EX
 
     // Etapa MEM
     wire [31:0] m_alu_result;
@@ -90,12 +124,14 @@ module PIPELINE (
     wire m_mem_to_reg;
     wire m_reg_write;
     wire [2:0] m_bhw_type;
+    wire m_halt;
 
     wire [31:0] m_wb_read_data; // Datos leídos de memoria para la etapa WB
     wire [4:0] m_wb_rd; // Registro destino para la etapa WB
     wire [31:0] m_wb_alu_result; // Resultado de la ALU para la etapa WB
     wire m_wb_mem_to_reg; // Señal de escritura de registro desde memoria para la etapa WB
     wire m_wb_reg_write; // Señal de escritura de registro para la etapa WB
+    wire m_wb_halt; // Señal de parada para la etapa WB
 
     // Etapa WB
     wire [31:0] wb_data; // Datos a escribir en el registro
@@ -104,6 +140,7 @@ module PIPELINE (
     wire wb_reg_write; // Señal de escritura de registro para la etapa WB
     wire wb_mem_to_reg; // Señal de escritura de registro desde memoria para la etapa WB
     wire [31:0] wb_alu_result; // Resultado de la ALU para la etapa WB
+    wire wb_halt; // Señal de parada para la etapa WB
 
     // Regs and Mem data wires
     wire [31:0] reg_data_wire; // Datos de los registros
@@ -111,11 +148,12 @@ module PIPELINE (
 
     IF if_stage (
         .i_clk(i_clk),
+        .i_clk_en(i_clk_en & ~halt_latched), // Enable clock signal
         .i_reset(i_reset),
         .i_stall(stall), // No stall signal for now
         .i_pcsrc(pcsrc), // No branch taken for now
         .i_jump(jump), // No jump for now
-        .i_write_en(i_du_write_en & ~halt_latched), // No write enable for instruction memory
+        .i_write_en(i_du_write_en), // No write enable for instruction memory
         .i_read_en(i_du_read_en), // Always read from instruction memory
         .i_data(i_du_data), // No data to write in instruction memory
         .i_addr_wr(i_du_inst_addr_wr), // No address to write in instruction memory
@@ -126,11 +164,12 @@ module PIPELINE (
     );
 
     IF_ID if_id_segmentation_register (
-        .clk(i_clk),
+        .clk(i_clk), // Clock signal, not latched if halted
+        .clk_en(i_clk_en & ~halt_latched), // Enable clock signal
         .reset(i_reset),
         .if_pc_plus_4(if_id_pc_plus_4), // PC + 4 from IF stage (not connected)
         .if_instruction(if_id_instruction), // Instruction from IF stage (not connected)
-        .stall(stall), // No stall signal for now
+        .stall(stall | halt_latched), // No stall signal for now
         .flush(flush_idex), // Flush signal for ID/EX stage
 
         .id_pc_plus_4(id_pc_plus_4), // Output PC + 4 for ID stage (not connected)
@@ -185,19 +224,13 @@ module PIPELINE (
         .o_bhw_type(id_ex_bhw_type), // Output bhw type signal for
         .o_flush_idex(flush_idex), // Output flush ID/EX signal for ID stage (not connected)
         .o_stall(stall), // Output stall signal for ID stage (not connected)p signal for ID stage (not connected)
-        .o_halt(halt_wire), // Output halt signal for ID stage (not connected)
+        .o_halt(id_ex_halt), // Output halt signal for ID stage (not connected)
         .o_du_reg_data(reg_data_wire)
     );  
 
-    always @(posedge i_clk or posedge i_reset) begin
-        if (i_reset)
-            halt_latched <= 1'b0;
-        else if (halt_wire)
-            halt_latched <= 1'b1;
-    end
-
     ID_EX id_ex_segmentation_register (
         .clk(i_clk),
+        .clk_en(i_clk_en), // Enable clock signal
         .reset(i_reset),
         .id_dato_1(id_ex_data_1), // Data 1 from ID stage (not connected)
         .id_dato_2(id_ex_data_2), // Data 2 from ID stage (not connected)
@@ -214,6 +247,7 @@ module PIPELINE (
         .id_wb_mem_to_reg(id_ex_mem_to_reg), // Mem to reg signal from ID stage (not connected)
         .id_wb_reg_write(id_ex_reg_write), // Reg write signal from ID stage (not connected)
         .id_bhw_type(id_ex_bhw_type), // BHW type signal from ID stage (not connected)
+        .id_ex_halt(id_ex_halt), // Halt signal from ID stage (not connected)
 
         .ex_dato_1(ex_data_1), // Output data 1 for EX stage (not connected)
         .ex_dato_2(ex_data_2), // Output data 2 for EX stage (not connected)
@@ -229,12 +263,11 @@ module PIPELINE (
         .ex_m_mem_write(ex_write), // Output mem write signal for EX stage (not connected)
         .ex_wb_mem_to_reg(ex_to_reg), // Output mem to reg signal for EX stage (not connected)
         .ex_wb_reg_write(ex_reg_write), // Output reg write signal for EX stage (not connected)
-        .ex_bhw_type(ex_bhw_type) // Output bhw type signal for EX stage (not connected)
+        .ex_bhw_type(ex_bhw_type), // Output bhw type signal for EX stage (not connected)
+        .ex_halt(ex_halt) // Output halt signal for EX stage (not connected)
     );  
 
     EX ex_stage (
-        .i_clk(i_clk),
-        .i_reset(i_reset),
         .i_id_ex_data_1(ex_data_1), // Data 1 from ID stage (not connected)
         .i_id_ex_data_2(ex_data_2), // Data 2 from ID stage (not connected)
         .i_id_ex_rs(ex_rs), // rs from ID stage (not connected)
@@ -256,6 +289,7 @@ module PIPELINE (
         .i_m_wb_reg_write(wb_reg_write), // Reg write signal from MEM stage (not connected)
         .i_m_wb_rd(wb_rd), // Write back rd from MEM stage (not connected)
         .i_ex_m_bhw_type(ex_bhw_type), // BHW type signal from EX stage (not connected)
+        .i_ex_m_halt(ex_halt), // Halt signal from EX stage (not connected)
 
         .o_ex_m_alu_result(ex_m_alu_result), // Output ALU result for EX stage (not connected)
         .o_ex_m_write_data(ex_m_write_data), // Output write data for EX stage
@@ -264,11 +298,13 @@ module PIPELINE (
         .o_ex_m_mem_write(ex_m_mem_write), // Output mem write signal for EX stage (not connected)
         .o_ex_m_mem_to_reg(ex_m_mem_to_reg), // Output mem to reg signal for EX stage (not connected)
         .o_ex_m_reg_write(ex_m_reg_write), // Output reg write signal for EX stage (not connected) 
-        .o_ex_m_bhw_type(ex_m_bhw_type) // Output bhw type signal for EX stage (not connected) 
+        .o_ex_m_bhw_type(ex_m_bhw_type), // Output bhw type signal for EX stage (not connected) 
+        .o_ex_m_halt(ex_m_halt) // Output halt signal for EX stage (not connected)
     );
 
     EX_M ex_m_segmentation_register (
         .i_clk(i_clk),
+        .i_clk_en(i_clk_en), // Enable clock signal
         .i_reset(i_reset),
         .i_ex_alu_result(ex_m_alu_result), // ALU result from EX
         .i_ex_write_data(ex_m_write_data), // Write data from EX stage
@@ -278,6 +314,7 @@ module PIPELINE (
         .i_ex_m_mem_to_reg(ex_m_mem_to_reg), // Mem to reg signal
         .i_ex_m_reg_write(ex_m_reg_write), // Reg write signal from EX stage
         .i_ex_m_bhw_type(ex_m_bhw_type), // BHW type signal from EX stage
+        .i_ex_m_halt(ex_m_halt), // Halt signal from EX stage
 
         .o_ex_m_alu_result(m_alu_result), // Output ALU result for MEM stage
         .o_ex_m_write_data(m_write_data), // Output write data for MEM stage
@@ -286,7 +323,8 @@ module PIPELINE (
         .o_ex_m_mem_write(m_mem_write), // Output mem write signal for MEM stage
         .o_ex_m_mem_to_reg(m_mem_to_reg), // Output mem to reg signal
         .o_ex_m_reg_write(m_reg_write), // Output reg write signal for MEM stage
-        .o_ex_m_bhw_type(m_bhw_type) // Output bhw type signal for MEM stage
+        .o_ex_m_bhw_type(m_bhw_type), // Output bhw type signal for MEM stage
+        .o_ex_m_halt(m_halt) // Output halt signal for MEM stage
     );
 
     MEM mem_stage (
@@ -301,6 +339,7 @@ module PIPELINE (
         .i_m_reg_write(m_reg_write),
         .i_m_bhw_type(m_bhw_type),
         .i_du_mem_addr(i_du_mem_addr), // Address for debug unit
+        .i_m_halt(m_halt),
 
         .o_m_wb_read_data(m_wb_read_data),
         .o_m_rd(m_wb_rd),
@@ -308,46 +347,84 @@ module PIPELINE (
         .o_m_wb_alu_result(m_wb_alu_result),
         .o_m_wb_mem_to_reg(m_wb_mem_to_reg),
         .o_m_wb_reg_write(m_wb_reg_write),
-        .o_du_mem_data(mem_data_wire) // Data read from memory for debug unit
+        .o_du_mem_data(mem_data_wire), // Data read from memory for debug unit
+        .o_m_wb_halt(m_wb_halt)          // Halt signal for WB stage
     );
 
     M_WB m_wb_segmentation_register (
         .i_clk(i_clk),
+        .i_clk_en(i_clk_en), // Enable clock signal
         .i_reset(i_reset),
         .i_m_read_data(m_wb_read_data),
         .i_m_rd(m_wb_rd),
         .i_m_alu_result(m_wb_alu_result),
         .i_m_mem_to_reg(m_wb_mem_to_reg),
         .i_m_reg_write(m_wb_reg_write),
+        .i_m_halt(m_wb_halt),
 
         .o_wb_data(wb_data),
         .o_wb_rd(wb_rd),
         .o_wb_mem_to_reg(wb_mem_to_reg),
         .o_wb_reg_write(wb_reg_write),
-        .o_wb_alu_result(wb_alu_result)
+        .o_wb_alu_result(wb_alu_result),
+        .o_wb_halt(wb_halt)
     );
 
     WB wb_stage (
         .i_wb_data(wb_data),
         .i_wb_mem_to_reg(wb_mem_to_reg),
         .i_wb_alu_result(wb_alu_result),
+        .i_wb_halt(wb_halt),
 
-        .o_wb_write_data(wb_write_data)
+        .o_wb_write_data(wb_write_data),
+        .o_wb_halt(end_program)
     );
+
+    always @(*) begin
+        if (i_reset)
+            halt_latched <= 1'b0;
+        else if (end_program)
+            halt_latched <= 1'b1;
+    end
 
     // DEBUG UNIT
     assign o_du_regs_mem_data = reg_data_wire; // Datos de los registros para el debug unit
 
     assign o_du_mem_data = mem_data_wire; // Datos de la memoria para el debug unit
 
-    assign o_du_if_id_data = {if_id_pc_plus_4, if_id_instruction}; // Datos de la etapa IF/ID
+    assign o_du_if_id_pc_plus_4 = if_id_pc_plus_4; // Datos de la etapa IF/ID
+    assign o_du_if_id_instruction = if_id_instruction;
 
-    assign o_du_id_ex_data = {id_ex_data_1, id_ex_data_2, id_ex_rs, id_ex_rt, id_ex_rd, id_ex_extended_beq_offset, id_ex_function_code, 
-                              id_ex_reg_dest, id_ex_alu_src, id_ex_alu_op, id_ex_mem_read, id_ex_mem_write, id_ex_mem_to_reg, id_ex_reg_write, id_ex_bhw_type}; // Datos de la etapa ID/EX
+    assign o_du_id_ex_data_1 = id_ex_data_1;
+    assign o_du_id_ex_data_2 = id_ex_data_2;
+    assign o_du_id_ex_rs = id_ex_rs;
+    assign o_du_id_ex_rt = id_ex_rt;
+    assign o_du_id_ex_rd = id_ex_rd;
+    assign o_du_id_ex_extended_beq_offset = id_ex_extended_beq_offset;
+    assign o_du_id_ex_function_code = id_ex_function_code;
+    assign o_du_id_ex_reg_dest = id_ex_reg_dest;
+    assign o_du_id_ex_alu_src = id_ex_alu_src;
+    assign o_du_id_ex_alu_op = id_ex_alu_op;
+    assign o_du_id_ex_mem_read = id_ex_mem_read;
+    assign o_du_id_ex_mem_write = id_ex_mem_write;
+    assign o_du_id_ex_mem_to_reg = id_ex_mem_to_reg;
+    assign o_du_id_ex_reg_write = id_ex_reg_write;
+    assign o_du_id_ex_bhw_type = id_ex_bhw_type;
 
-    assign o_du_ex_m_data = {ex_m_alu_result, ex_m_write_data, ex_m_rd, ex_m_mem_read, ex_m_mem_write, ex_m_mem_to_reg, ex_m_reg_write, ex_m_bhw_type}; // Datos de la etapa EX/MEM
+    assign o_du_ex_m_alu_result = ex_m_alu_result;
+    assign o_du_ex_m_write_data = ex_m_write_data;
+    assign o_du_ex_m_rd = ex_m_rd;
+    assign o_du_ex_m_mem_read = ex_m_mem_read;
+    assign o_du_ex_m_mem_write = ex_m_mem_write;
+    assign o_du_ex_m_mem_to_reg = ex_m_mem_to_reg;
+    assign o_du_ex_m_reg_write = ex_m_reg_write;
+    assign o_du_ex_m_bhw_type = ex_m_bhw_type;
 
-    assign o_du_m_wb_data = {m_wb_read_data, m_wb_rd, m_wb_alu_result, m_wb_mem_to_reg, m_wb_reg_write}; // Datos de la etapa MEM/WB
+    assign o_du_m_wb_read_data = m_wb_read_data;
+    assign o_du_m_wb_rd = m_wb_rd;
+    assign o_du_m_wb_alu_result = m_wb_alu_result;
+    assign o_du_m_wb_mem_to_reg = m_wb_mem_to_reg;
+    assign o_du_m_wb_reg_write = m_wb_reg_write;
 
     assign o_du_halt = halt_latched; // Señal de parada (HALT)
 

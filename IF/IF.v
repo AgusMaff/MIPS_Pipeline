@@ -2,6 +2,7 @@
 
 module IF(
     input  wire        i_clk,          // Reloj
+    input  wire        i_clk_en,       // Habilitar señal de reloj
     input  wire        i_reset,        // Reset
     input  wire        i_stall,        // Señal de stall para agregar latencia
     input  wire        i_pcsrc,        // Señal de selección de PC
@@ -35,11 +36,12 @@ module IF(
 
     PC pc (
         .clk(i_clk),
+        .clk_en(i_clk_en), // Habilitar señal de reloj
         .reset(i_reset),
-        .next_pc(next_pc_final),
+        .next_pc(next_pc_final[7:0]), // Solo se usan los 8 bits menos significativos
         .write_en(i_write_en),      // No se escribe en la memoria de instrucciones
         .stall(i_stall),
-        .pc(pc_to_instmem)
+        .pc(pc_to_instmem[7:0])
     );
 
     INSMEM instmem (
@@ -48,8 +50,8 @@ module IF(
         .write_en(i_write_en),      // No se escribe en la memoria de instrucciones
         .read_en(i_read_en),        // Siempre se lee (luego tengo que diseñar la debug unit que controla la lectura y escritura de la memoria de instrucciones)
         .data(i_data),              // No se usa en lectura
-        .addr(pc_to_instmem),       // Dirección de la memoria de instrucciones
-        .addr_wr(i_addr_wr),        // Dirección de escritura (no se usa en lectura)
+        .addr(pc_to_instmem[7:0]),       // Dirección de la memoria de instrucciones
+        .addr_wr(i_addr_wr[7:0]),        // Dirección de escritura (no se usa en lectura)
         .instruction(o_instruction) // Instrucción leída
     );
 

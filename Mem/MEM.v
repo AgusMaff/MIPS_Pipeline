@@ -11,7 +11,8 @@ module MEM (
     input wire        i_m_mem_to_reg,          // Señal de escritura de registro
     input wire        i_m_reg_write,           // Señal de escritura de registro
     input wire [2:0]  i_m_bhw_type,          // Tipo de instrucción (Byte, Halfword, Word)
-    input wire [31:0]  i_du_mem_addr,          // Dirección de memoria para la unidad de depuración
+    input wire [7:0]  i_du_mem_addr,          // Dirección de memoria para la unidad de depuración
+    input wire        i_m_halt,            // Señal de parada de la etapa EX/MEM
 
     output wire [31:0] o_m_wb_read_data,
     output wire [4:0]  o_m_rd,             // ID del registro destino
@@ -19,7 +20,8 @@ module MEM (
     output wire [31:0] o_m_wb_alu_result,     // Resultado de la ALU de la etapa MEM
     output wire        o_m_wb_mem_to_reg,     // Señal de escritura de registro
     output wire        o_m_wb_reg_write,      // Señal de escritura de registro
-    output wire [31:0] o_du_mem_data // Datos leídos de memoria para la unidad de depuración
+    output wire [31:0] o_du_mem_data, // Datos leídos de memoria para la unidad de depuración
+    output wire        o_m_wb_halt                // Señal de parada de la etapa MEM
 );
 
     wire [31:0] mem_data_out;
@@ -104,4 +106,6 @@ module MEM (
     assign o_m_wb_mem_to_reg = i_m_mem_to_reg;
 
     assign o_m_wb_reg_write = i_m_reg_write;
+
+    assign o_m_wb_halt = i_m_halt;
 endmodule

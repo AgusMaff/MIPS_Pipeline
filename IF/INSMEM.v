@@ -6,8 +6,8 @@ module INSMEM(
     input wire         write_en,    // Señal para habilitar escritura
     input wire         read_en,     // Señal para habilitar lectura
     input wire  [31:0] data,        // Datos a escribir
-    input wire  [31:0] addr,        // Dirección de lectura
-    input  wire [31:0] addr_wr,     // Direccion de escritura (no se usa en lectura)
+    input wire  [7:0] addr,        // Dirección de lectura
+    input  wire [7:0] addr_wr,     // Direccion de escritura (no se usa en lectura)
     output wire [31:0] instruction  // Instrucción leída
 );
     // Memoria de instrucciones (256 bytes = 64 palabras de 32 bits)
@@ -15,8 +15,8 @@ module INSMEM(
 
     integer j;
 
-    wire [31:0] read_base_addr = addr;
-    wire [31:0] write_base_addr = addr_wr;
+    wire [7:0] read_base_addr = addr;
+    wire [7:0] write_base_addr = addr_wr;
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin

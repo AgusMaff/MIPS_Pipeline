@@ -2,6 +2,7 @@
 
 module IF_ID (
     input  wire        clk,
+    input  wire        clk_en,        // Habilitar señal de reloj
     input  wire        reset,
     input  wire [31:0] if_pc_plus_4,
     input  wire [31:0] if_instruction,
@@ -34,7 +35,7 @@ module IF_ID (
             id_beq_offset <= 16'b0;
             id_opcode <= 6'b0;
             id_function_code <= 6'b0;
-        end else if (!stall) begin
+        end else if (!stall && clk_en) begin
             id_pc_plus_4 <= if_pc_plus_4;
             id_rs <= if_instruction[25:21];
             id_rt <= if_instruction[20:16];
