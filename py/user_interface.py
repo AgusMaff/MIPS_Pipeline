@@ -278,12 +278,13 @@ def decode_if_id_latch(data):
         print(f"Error: Datos insuficientes para IF/ID. Recibidos: {len(data)} bytes, esperados: 8")
         return None
     
-    pc_plus_4 = int.from_bytes(data[0:4], 'big')
-    instruction = int.from_bytes(data[4:8], 'big')
-    
+    # assign if_id_latch_data = {i_if_id_pc_plus_4,        // 32 bits [63:32]
+    #                             i_if_id_instruction};    // 32 bits [31:0]
+    packed_data = int.from_bytes(data, 'big')
+
     return {
-        'pc_plus_4': pc_plus_4,
-        'instruction': instruction
+        'pc_plus_4': (packed_data >> 32) & 0xFFFFFFFF,
+        'instruction': (packed_data >> 0) & 0xFFFFFFFF
     }
 
 def decode_id_ex_latch_packed(data):

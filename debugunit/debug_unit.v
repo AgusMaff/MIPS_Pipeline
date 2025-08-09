@@ -405,7 +405,7 @@ always @(*) begin
             else begin
                 next_exm_byte_counter = exm_byte_counter + 1;
 
-                if (exm_byte_counter == 4'b1010) begin
+                if (exm_byte_counter == 4'b1001) begin
                     next_exm_byte_counter = 0;
                     next_state = IDLE; // Vuelve a IDLE después de enviar los datos
                 end
@@ -420,7 +420,7 @@ always @(*) begin
             else begin
                 next_mwb_byte_counter = mwb_byte_counter + 1;
 
-                if (mwb_byte_counter == 4'b1001) begin
+                if (mwb_byte_counter == 4'b1000) begin
                     next_mwb_byte_counter = 0;
                     next_state = IDLE; // Vuelve a IDLE después de enviar los datos
                 end

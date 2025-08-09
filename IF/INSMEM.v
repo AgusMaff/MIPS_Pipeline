@@ -34,8 +34,6 @@ module INSMEM(
     end
 
     // Lectura de la instrucción
-    assign instruction = read_en ?
-        {memory[read_base_addr + 3], memory[read_base_addr + 2], memory[read_base_addr + 1], memory[read_base_addr]} : 
-                32'b0;
+    assign instruction = {memory[read_base_addr + 3], memory[read_base_addr + 2], memory[read_base_addr + 1], memory[read_base_addr]};
 
 endmodule
