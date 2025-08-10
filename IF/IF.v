@@ -14,7 +14,7 @@ module IF(
     input  wire [31:0] i_beq_dir,      // Dirección de salto para BEQ
     input  wire [31:0] i_prev_instruction, // Instrucción previa para la unidad de depuración
     input  wire [31:0] i_jr_jump_addr, // Dirección de salto para JR
-    input wire         i_jumpSel,      // Bit de control para JR
+    input  wire        i_jumpSel,      // Bit de control para JR
 
     output wire [31:0] o_pc_plus_4,    // PC + 4
     output wire [31:0] o_instruction   // Instrucción leída

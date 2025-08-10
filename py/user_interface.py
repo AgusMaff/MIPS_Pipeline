@@ -343,48 +343,54 @@ def decode_if_id_latch(data):
     }
 
 def decode_id_ex_latch_packed(data):
-    """Decodifica el latch ID/EX con empaquetado real según debug_unit.v"""
-    if len(data) < 17:
-        print(f"Error: Datos insuficientes para ID/EX. Recibidos: {len(data)} bytes, esperados: 17")
+    """Decodifica el latch ID/EX con empaquetado actualizado según debug_unit.v"""
+    if len(data) < 21:  # ✅ ACTUALIZADO: 21 bytes (168 bits)
+        print(f"Error: Datos insuficientes para ID/EX. Recibidos: {len(data)} bytes, esperados: 21")
         return None
     
-    # Convertir a entero grande (big endian) - 17 bytes = 136 bits
+    # Convertir a entero grande (big endian) - 21 bytes = 168 bits
     packed_data = int.from_bytes(data, 'big')
     
-    # ✅ EXTRAER CAMPOS según el empaquetado real del debug_unit.v:
-    # assign idex_latch_data = {i_id_ex_data_1,        // 32 bits [135:104]
-    #                           i_id_ex_data_2,        // 32 bits [103:72]  
-    #                           i_id_ex_rs,            // 5 bits  [71:67]
-    #                           i_id_ex_rt,            // 5 bits  [66:62]
-    #                           i_id_ex_rd,            // 5 bits  [61:57]
-    #                           i_id_ex_function_code, // 6 bits  [56:51]
-    #                           i_id_ex_extended_beq_offset, // 32 bits [50:19]
-    #                           i_id_ex_reg_dest,      // 1 bit   [18:18]
-    #                           i_id_ex_mem_read,      // 1 bit   [17:17]
-    #                           i_id_ex_mem_write,     // 1 bit   [16:16]
-    #                           i_id_ex_reg_write,     // 1 bit   [15:15]
-    #                           i_id_ex_alu_src,       // 1 bit   [14:14]
-    #                           i_id_ex_mem_to_reg,    // 1 bit   [13:13]
-    #                           i_id_ex_alu_op,        // 4 bits  [12:9]
-    #                           i_id_ex_bhw_type,      // 3 bits  [8:6]
-    #                           6'b0};                 // 6 bits  [5:0] padding
+    # ✅ EXTRAER CAMPOS según el empaquetado actualizado del debug_unit.v:
+    # assign idex_latch_data = {i_id_ex_data_1,                // 32 bits [167:136]
+    #                           i_id_ex_data_2,                // 32 bits [135:104]  
+    #                           i_id_ex_rs,                    // 5 bits  [103:99]
+    #                           i_id_ex_rt,                    // 5 bits  [98:94]
+    #                           i_id_ex_rd,                    // 5 bits  [93:89]
+    #                           i_id_ex_function_code,         // 6 bits  [88:83]
+    #                           i_id_ex_extended_beq_offset,   // 32 bits [82:51]
+    #                           i_id_ex_reg_dest,              // 1 bit   [50:50]
+    #                           i_id_ex_mem_read,              // 1 bit   [49:49]
+    #                           i_id_ex_mem_write,             // 1 bit   [48:48]
+    #                           i_id_ex_reg_write,             // 1 bit   [47:47]
+    #                           i_id_ex_alu_src,               // 1 bit   [46:46]
+    #                           i_id_ex_mem_to_reg,            // 1 bit   [45:45]
+    #                           i_id_ex_alu_op,                // 4 bits  [44:41]
+    #                           i_id_ex_bhw_type,              // 3 bits  [40:38]
+    #                           i_id_ex_isJal,                 // 1 bit   [37:37]
+    #                           i_id_ex_jalSel,                // 1 bit   [36:36]
+    #                           i_id_ex_pc_plus_8,             // 32 bits [35:4]
+    #                           4'b0};                         // 4 bits  [3:0] padding
     
-    data_1 = (packed_data >> 104) & 0xFFFFFFFF        # bits 135:104 (32 bits)
-    data_2 = (packed_data >> 72) & 0xFFFFFFFF         # bits 103:72  (32 bits)
-    rs = (packed_data >> 67) & 0x1F                   # bits 71:67   (5 bits)
-    rt = (packed_data >> 62) & 0x1F                   # bits 66:62   (5 bits)
-    rd = (packed_data >> 57) & 0x1F                   # bits 61:57   (5 bits)
-    function_code = (packed_data >> 51) & 0x3F        # bits 56:51   (6 bits)
-    beq_offset = (packed_data >> 19) & 0xFFFFFFFF     # bits 50:19   (32 bits)
-    reg_dest = (packed_data >> 18) & 0x1              # bit  18      (1 bit)
-    mem_read = (packed_data >> 17) & 0x1              # bit  17      (1 bit)
-    mem_write = (packed_data >> 16) & 0x1             # bit  16      (1 bit)
-    reg_write = (packed_data >> 15) & 0x1             # bit  15      (1 bit)
-    alu_src = (packed_data >> 14) & 0x1               # bit  14      (1 bit)
-    mem_to_reg = (packed_data >> 13) & 0x1            # bit  13      (1 bit)
-    alu_op = (packed_data >> 9) & 0xF                 # bits 12:9    (4 bits)
-    bhw_type = (packed_data >> 6) & 0x7               # bits 8:6     (3 bits)
-    padding = packed_data & 0x3F                      # bits 5:0     (6 bits) - solo para debug
+    data_1 = (packed_data >> 136) & 0xFFFFFFFF        # bits 167:136 (32 bits)
+    data_2 = (packed_data >> 104) & 0xFFFFFFFF        # bits 135:104 (32 bits)
+    rs = (packed_data >> 99) & 0x1F                   # bits 103:99  (5 bits)
+    rt = (packed_data >> 94) & 0x1F                   # bits 98:94   (5 bits)
+    rd = (packed_data >> 89) & 0x1F                   # bits 93:89   (5 bits)
+    function_code = (packed_data >> 83) & 0x3F        # bits 88:83   (6 bits)
+    beq_offset = (packed_data >> 51) & 0xFFFFFFFF     # bits 82:51   (32 bits)
+    reg_dest = (packed_data >> 50) & 0x1              # bit  50      (1 bit)
+    mem_read = (packed_data >> 49) & 0x1              # bit  49      (1 bit)
+    mem_write = (packed_data >> 48) & 0x1             # bit  48      (1 bit)
+    reg_write = (packed_data >> 47) & 0x1             # bit  47      (1 bit)
+    alu_src = (packed_data >> 46) & 0x1               # bit  46      (1 bit)
+    mem_to_reg = (packed_data >> 45) & 0x1            # bit  45      (1 bit)
+    alu_op = (packed_data >> 41) & 0xF                # bits 44:41   (4 bits)
+    bhw_type = (packed_data >> 38) & 0x7              # bits 40:38   (3 bits)
+    isJal = (packed_data >> 37) & 0x1                 # bit  37      (1 bit) ✅ NUEVO
+    jalSel = (packed_data >> 36) & 0x1                # bit  36      (1 bit) ✅ NUEVO
+    pc_plus_8 = (packed_data >> 4) & 0xFFFFFFFF       # bits 35:4    (32 bits) ✅ NUEVO
+    padding = packed_data & 0xF                       # bits 3:0     (4 bits) padding
     
     return {
         'data_1': data_1,
@@ -402,38 +408,45 @@ def decode_id_ex_latch_packed(data):
         'mem_to_reg': mem_to_reg,
         'alu_op': alu_op,
         'bhw_type': bhw_type,
-        'padding': padding  # Para debug - debería ser 0
+        'isJal': isJal,           # ✅ NUEVO
+        'jalSel': jalSel,         # ✅ NUEVO
+        'pc_plus_8': pc_plus_8,   # ✅ NUEVO
+        'padding': padding
     }
 
 def decode_ex_m_latch_packed(data):
-    """Decodifica el latch EX/M con empaquetado real según debug_unit.v"""
-    if len(data) < 10:
-        print(f"Error: Datos insuficientes para EX/M. Recibidos: {len(data)} bytes, esperados: 10")
+    """Decodifica el latch EX/M con empaquetado actualizado según debug_unit.v"""
+    if len(data) < 14:  # ✅ ACTUALIZADO: 14 bytes (112 bits)
+        print(f"Error: Datos insuficientes para EX/M. Recibidos: {len(data)} bytes, esperados: 14")
         return None
     
-    # Convertir a entero grande (big endian) - 10 bytes = 80 bits
+    # Convertir a entero grande (big endian) - 14 bytes = 112 bits
     packed_data = int.from_bytes(data, 'big')
     
-    # ✅ EXTRAER CAMPOS según el empaquetado real del debug_unit.v:
-    # assign exm_latch_data = {i_ex_m_rd,           // 5 bits  [79:75]
-    #                          i_ex_m_alu_result,   // 32 bits [74:43]
-    #                          i_ex_m_write_data,   // 32 bits [42:11]
-    #                          i_ex_m_mem_read,     // 1 bit   [10:10]
-    #                          i_ex_m_mem_write,    // 1 bit   [9:9]
-    #                          i_ex_m_reg_write,    // 1 bit   [8:8]
-    #                          i_ex_m_mem_to_reg,   // 1 bit   [7:7]
-    #                          i_ex_m_bhw_type,     // 3 bits  [6:4]
-    #                          4'b0};               // 4 bits  [3:0] padding
+    # ✅ EXTRAER CAMPOS según el empaquetado actualizado del debug_unit.v:
+    # assign exm_latch_data = {i_ex_m_rd,           // 5 bits  [111:107]
+    #                          i_ex_m_alu_result,   // 32 bits [106:75]
+    #                          i_ex_m_write_data,   // 32 bits [74:43]
+    #                          i_ex_m_mem_read,     // 1 bit   [42:42]
+    #                          i_ex_m_mem_write,    // 1 bit   [41:41]
+    #                          i_ex_m_reg_write,    // 1 bit   [40:40]
+    #                          i_ex_m_mem_to_reg,   // 1 bit   [39:39]
+    #                          i_ex_m_bhw_type,     // 3 bits  [38:36]
+    #                          i_ex_m_isJal,        // 1 bit   [35:35]
+    #                          i_ex_m_pc_plus_8,    // 32 bits [34:3]
+    #                          3'b0};               // 3 bits  [2:0] padding
     
-    rd = (packed_data >> 75) & 0x1F                   # bits 79:75   (5 bits)
-    alu_result = (packed_data >> 43) & 0xFFFFFFFF     # bits 74:43   (32 bits)
-    write_data = (packed_data >> 11) & 0xFFFFFFFF     # bits 42:11   (32 bits)
-    mem_read = (packed_data >> 10) & 0x1              # bit  10      (1 bit)
-    mem_write = (packed_data >> 9) & 0x1              # bit  9       (1 bit)
-    reg_write = (packed_data >> 8) & 0x1              # bit  8       (1 bit)
-    mem_to_reg = (packed_data >> 7) & 0x1             # bit  7       (1 bit)
-    bhw_type = (packed_data >> 4) & 0x7               # bits 6:4     (3 bits)
-    padding = packed_data & 0xF                       # bits 3:0     (4 bits) - solo para debug
+    rd = (packed_data >> 107) & 0x1F                  # bits 111:107 (5 bits)
+    alu_result = (packed_data >> 75) & 0xFFFFFFFF     # bits 106:75  (32 bits)
+    write_data = (packed_data >> 43) & 0xFFFFFFFF     # bits 74:43   (32 bits)
+    mem_read = (packed_data >> 42) & 0x1              # bit  42      (1 bit)
+    mem_write = (packed_data >> 41) & 0x1             # bit  41      (1 bit)
+    reg_write = (packed_data >> 40) & 0x1             # bit  40      (1 bit)
+    mem_to_reg = (packed_data >> 39) & 0x1            # bit  39      (1 bit)
+    bhw_type = (packed_data >> 36) & 0x7              # bits 38:36   (3 bits)
+    isJal = (packed_data >> 35) & 0x1                 # bit  35      (1 bit) ✅ NUEVO
+    pc_plus_8 = (packed_data >> 3) & 0xFFFFFFFF       # bits 34:3    (32 bits) ✅ NUEVO
+    padding = packed_data & 0x7                       # bits 2:0     (3 bits) padding
     
     return {
         'write_reg': rd,
@@ -444,100 +457,133 @@ def decode_ex_m_latch_packed(data):
         'reg_write': reg_write,
         'mem_to_reg': mem_to_reg,
         'bhw_type': bhw_type,
-        'padding': padding  # Para debug - debería ser 0
+        'isJal': isJal,           # ✅ NUEVO
+        'pc_plus_8': pc_plus_8,   # ✅ NUEVO
+        'padding': padding
     }
 
 def decode_m_wb_latch_packed(data):
-    """Decodifica el latch M/WB con empaquetado real según debug_unit.v"""
-    if len(data) < 9:
-        print(f"Error: Datos insuficientes para M/WB. Recibidos: {len(data)} bytes, esperados: 9")
+    """Decodifica el latch M/WB con empaquetado actualizado según debug_unit.v"""
+    if len(data) < 13:  # ✅ ACTUALIZADO: 13 bytes (104 bits)
+        print(f"Error: Datos insuficientes para M/WB. Recibidos: {len(data)} bytes, esperados: 13")
         return None
     
-    # Convertir a entero grande (big endian) - 9 bytes = 72 bits
+    # Convertir a entero grande (big endian) - 13 bytes = 104 bits
     packed_data = int.from_bytes(data, 'big')
     
-    # ✅ EXTRAER CAMPOS según el empaquetado real del debug_unit.v:
-    # assign mwb_latch_data = {i_m_wb_rd,           // 5 bits  [71:67]
-    #                          i_m_wb_alu_result,   // 32 bits [66:35]
-    #                          i_m_wb_read_data,    // 32 bits [34:3]
-    #                          i_m_wb_reg_write,    // 1 bit   [2:2]
-    #                          2'b0};               // 2 bits  [1:0] padding
+    # ✅ EXTRAER CAMPOS según el empaquetado actualizado del debug_unit.v:
+    # assign mwb_latch_data = {i_m_wb_rd,           // 5 bits  [103:99]
+    #                          i_m_wb_alu_result,   // 32 bits [98:67]
+    #                          i_m_wb_read_data,    // 32 bits [66:35]
+    #                          i_m_wb_reg_write,    // 1 bit   [34:34]
+    #                          i_m_wb_mem_to_reg,   // 1 bit   [33:33]
+    #                          i_m_wb_isJal,        // 1 bit   [32:32]
+    #                          i_m_wb_pc_plus_8};   // 32 bits [31:0]
     
-    rd = (packed_data >> 67) & 0x1F                   # bits 71:67   (5 bits)
-    alu_result = (packed_data >> 35) & 0xFFFFFFFF     # bits 66:35   (32 bits)
-    read_data = (packed_data >> 3) & 0xFFFFFFFF       # bits 34:3    (32 bits)
-    reg_write = (packed_data >> 2) & 0x1              # bit  2       (1 bit)
-    padding = packed_data & 0x3                       # bits 1:0     (2 bits) - solo para debug
+    rd = (packed_data >> 99) & 0x1F                   # bits 103:99  (5 bits)
+    alu_result = (packed_data >> 67) & 0xFFFFFFFF     # bits 98:67   (32 bits)
+    read_data = (packed_data >> 35) & 0xFFFFFFFF      # bits 66:35   (32 bits)
+    reg_write = (packed_data >> 34) & 0x1             # bit  34      (1 bit)
+    mem_to_reg = (packed_data >> 33) & 0x1            # bit  33      (1 bit) ✅ NUEVO
+    isJal = (packed_data >> 32) & 0x1                 # bit  32      (1 bit) ✅ NUEVO
+    pc_plus_8 = packed_data & 0xFFFFFFFF              # bits 31:0    (32 bits) ✅ NUEVO
     
     return {
         'rd': rd,
         'alu_result': alu_result,
         'read_data': read_data,
         'reg_write': reg_write,
-        'padding': padding  # Para debug - debería ser 0
+        'mem_to_reg': mem_to_reg, # ✅ NUEVO
+        'isJal': isJal,           # ✅ NUEVO
+        'pc_plus_8': pc_plus_8    # ✅ NUEVO
     }
 
 def display_latches(latches):
-    """Muestra los latches de manera organizada con valores RAW"""
-    print("\n" + "="*70)
-    print("=== CONTENIDO DE LOS LATCHES DEL PIPELINE ===")
-    print("="*70)
+    """Muestra los latches de manera organizada con todas las señales"""
+    print("\n" + "="*80)
+    print("=== CONTENIDO COMPLETO DE LOS LATCHES DEL PIPELINE ===")
+    print("="*80)
     
     # IF/ID
     if 'if_id' in latches:
         if_id = latches['if_id']
-        print(f"\nREGISTRO IF/ID:")
+        print(f"\n📍 REGISTRO IF/ID:")
         print(f"  PC+4: 0x{if_id['pc_plus_4']:08X} ({if_id['pc_plus_4']})")
         print(f"  Instruction: 0x{if_id['instruction']:08X}")
+        
+        # Decodificar instrucción básica
+        opcode = (if_id['instruction'] >> 26) & 0x3F
+        print(f"  Opcode: 0x{opcode:02X} ({opcode:06b})")
         if 'if_id_raw' in latches:
             print(f"  RAW Bytes: {[f'0x{b:02X}' for b in latches['if_id_raw']]}")
     
     # ID/EX
     if 'id_ex' in latches:
         id_ex = latches['id_ex']
-        print(f"\nREGISTRO ID/EX:")
-        print(f"  Data 1: 0x{id_ex['data_1']:08X}")
-        print(f"  Data 2: 0x{id_ex['data_2']:08X}")
-        print(f"  RS: {id_ex['rs']}, RT: {id_ex['rt']}, RD: {id_ex['rd']}")
-        print(f"  BEQ Offset: 0x{id_ex['beq_offset']:08X}")
-        print(f"  Function Code: 0x{id_ex['function_code']:02X}")
-        print(f"  Control Signals:")
-        print(f"    REG DEST: {id_ex['reg_dest']}, ALU SRC: {id_ex['alu_src']}")  # ✅ CORREGIDO
-        print(f"    ALU OP: {id_ex['alu_op']}, MEM Read: {id_ex['mem_read']}")
-        print(f"    MEM Write: {id_ex['mem_write']}, REG Write: {id_ex['reg_write']}")
+        print(f"\n📍 REGISTRO ID/EX:")
+        print(f"  🔹 Datos de Registros:")
+        print(f"    Data 1 (RS): 0x{id_ex['data_1']:08X} ({id_ex['data_1']})")
+        print(f"    Data 2 (RT): 0x{id_ex['data_2']:08X} ({id_ex['data_2']})")
+        print(f"  🔹 Direcciones de Registros:")
+        print(f"    RS: {id_ex['rs']:2d}, RT: {id_ex['rt']:2d}, RD: {id_ex['rd']:2d}")
+        print(f"  🔹 Información de Instrucción:")
+        print(f"    Function Code: 0x{id_ex['function_code']:02X}")
+        print(f"    BEQ Offset: 0x{id_ex['beq_offset']:08X}")
+        print(f"  🔹 Señales de Control ALU:")
+        print(f"    REG DEST: {id_ex['reg_dest']}, ALU SRC: {id_ex['alu_src']}")
+        print(f"    ALU OP: 0x{id_ex['alu_op']:X} ({id_ex['alu_op']:04b})")
+        print(f"  🔹 Señales de Control Memoria:")
+        print(f"    MEM Read: {id_ex['mem_read']}, MEM Write: {id_ex['mem_write']}")
         print(f"    MEM to REG: {id_ex['mem_to_reg']}, BHW Type: {id_ex['bhw_type']}")
-        print(f"    Padding (debug): 0x{id_ex['padding']:02X}")  # ✅ AGREGAR para debug
+        print(f"  🔹 Señales de Control Registro:")
+        print(f"    REG Write: {id_ex['reg_write']}")
+        print(f"  🔹 Señales de Salto (JAL/JALR): ")
+        print(f"    isJal: {id_ex['isJal']}, jalSel: {id_ex['jalSel']}")
+        print(f"    PC+8: 0x{id_ex['pc_plus_8']:08X}")
+        print(f"  🔹 Debug:")
+        print(f"    Padding: 0x{id_ex['padding']:X}")
         if 'id_ex_raw' in latches:
-            print(f"  RAW Bytes: {[f'0x{b:02X}' for b in latches['id_ex_raw']]}")
+            print(f"  RAW Bytes: {[f'0x{b:02X}' for b in latches['id_ex_raw'][:8]]}...+{len(latches['id_ex_raw'])-8}")
     
     # EX/M  
     if 'ex_m' in latches:
         ex_m = latches['ex_m']
-        print(f"\nREGISTRO EX/M:")
-        print(f"  Write REG (RD): {ex_m['write_reg']}")  # ✅ CORREGIDO
-        print(f"  ALU Result: 0x{ex_m['alu_result']:08X}")
-        print(f"  Write Data: 0x{ex_m['write_data']:08X}")
-        print(f"  Control Signals:")
+        print(f"\n📍 REGISTRO EX/M:")
+        print(f"  🔹 Resultados de Ejecución:")
+        print(f"    Write REG (RD): {ex_m['write_reg']:2d}")
+        print(f"    ALU Result: 0x{ex_m['alu_result']:08X} ({ex_m['alu_result']})")
+        print(f"    Write Data: 0x{ex_m['write_data']:08X}")
+        print(f"  🔹 Señales de Control Memoria:")
         print(f"    MEM Read: {ex_m['mem_read']}, MEM Write: {ex_m['mem_write']}")
-        print(f"    REG Write: {ex_m['reg_write']}, MEM to REG: {ex_m['mem_to_reg']}")
-        print(f"    BHW Type: {ex_m['bhw_type']}")
-        print(f"    Padding (debug): 0x{ex_m['padding']:01X}")  # ✅ AGREGAR para debug
+        print(f"    MEM to REG: {ex_m['mem_to_reg']}, BHW Type: {ex_m['bhw_type']}")
+        print(f"  🔹 Señales de Control Registro:")
+        print(f"    REG Write: {ex_m['reg_write']}")
+        print(f"  🔹 Señales de Salto JAL: ")
+        print(f"    isJal: {ex_m['isJal']}")
+        print(f"    PC+8: 0x{ex_m['pc_plus_8']:08X}")
+        print(f"  🔹 Debug:")
+        print(f"    Padding: 0x{ex_m['padding']:X}")
         if 'ex_m_raw' in latches:
-            print(f"  RAW Bytes: {[f'0x{b:02X}' for b in latches['ex_m_raw']]}")
+            print(f"  RAW Bytes: {[f'0x{b:02X}' for b in latches['ex_m_raw'][:8]]}...+{len(latches['ex_m_raw'])-8}")
     
     # M/WB
     if 'm_wb' in latches:
         m_wb = latches['m_wb']
-        print(f"\nREGISTRO M/WB:")
-        print(f"  RD: {m_wb['rd']}")
-        print(f"  ALU Result: 0x{m_wb['alu_result']:08X}")
-        print(f"  Read Data: 0x{m_wb['read_data']:08X}")
-        print(f"  REG Write: {m_wb['reg_write']}")
-        print(f"  Padding (debug): 0x{m_wb['padding']:01X}")  # ✅ AGREGAR para debug
+        print(f"\n📍 REGISTRO M/WB:")
+        print(f"  🔹 Datos para Writeback:")
+        print(f"    RD: {m_wb['rd']:2d}")
+        print(f"    ALU Result: 0x{m_wb['alu_result']:08X} ({m_wb['alu_result']})")
+        print(f"    Read Data: 0x{m_wb['read_data']:08X} ({m_wb['read_data']})")
+        print(f"  🔹 Señales de Control:")
+        print(f"    REG Write: {m_wb['reg_write']}")
+        print(f"    MEM to REG: {m_wb['mem_to_reg']} ")
+        print(f"  🔹 Señales de Salto JAL: ")
+        print(f"    isJal: {m_wb['isJal']}")
+        print(f"    PC+8: 0x{m_wb['pc_plus_8']:08X}")
         if 'm_wb_raw' in latches:
             print(f"  RAW Bytes: {[f'0x{b:02X}' for b in latches['m_wb_raw']]}")
     
-    print("\n" + "="*70)
+    print("\n" + "="*80)
 
 
 def main():
@@ -646,9 +692,9 @@ def main():
         elif accion == "5":
             print("\n=== LEER LATCH ESPECÍFICO ===")
             print("1: IF/ID (8 bytes)")
-            print("2: ID/EX (17 bytes)")   
-            print("3: EX/M (10 bytes)")      
-            print("4: M/WB (9 bytes)")     
+            print("2: ID/EX (21 bytes)")   
+            print("3: EX/M (14 bytes)")      
+            print("4: M/WB (13 bytes)")     
 
             latch_choice = input("Seleccione latch (1-4): ")
 
@@ -662,21 +708,21 @@ def main():
                             latches = {'if_id': decoded, 'if_id_raw': data}
                             display_latches(latches)
                 elif latch_choice == "2":
-                    data = read_single_latch(ser, READ_IDEX_LATCH_CMD, "ID/EX", 17)  
+                    data = read_single_latch(ser, READ_IDEX_LATCH_CMD, "ID/EX", 21)  
                     if data:
                         decoded = decode_id_ex_latch_packed(data)  # ✅ NUEVA función
                         if decoded:
                             latches = {'id_ex': decoded, 'id_ex_raw': data}
                             display_latches(latches)
                 elif latch_choice == "3":
-                    data = read_single_latch(ser, READ_EXM_LATCH_CMD, "EX/M", 10)  
+                    data = read_single_latch(ser, READ_EXM_LATCH_CMD, "EX/M", 14)  
                     if data:
                         decoded = decode_ex_m_latch_packed(data)  # ✅ NUEVA función
                         if decoded:
                             latches = {'ex_m': decoded, 'ex_m_raw': data}
                             display_latches(latches)
                 elif latch_choice == "4":
-                    data = read_single_latch(ser, READ_MWB_LATCH_CMD, "M/WB", 9)  
+                    data = read_single_latch(ser, READ_MWB_LATCH_CMD, "M/WB", 13)  
                     if data:
                         decoded = decode_m_wb_latch_packed(data)  # ✅ NUEVA función
                         if decoded:

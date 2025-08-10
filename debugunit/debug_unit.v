@@ -34,6 +34,9 @@ module debug_unit
     input                 i_id_ex_mem_to_reg,
     input [3:0]           i_id_ex_alu_op,
     input [2:0]           i_id_ex_bhw_type,
+    input                 i_id_ex_isJal,
+    input                 i_id_ex_jalSel,
+    input [31:0]          i_id_ex_pc_plus_8,
 
     input [4:0]           i_ex_m_rd,
     input [31:0]          i_ex_m_alu_result,
@@ -43,11 +46,16 @@ module debug_unit
     input                 i_ex_m_reg_write,
     input                 i_ex_m_mem_to_reg,
     input [2:0]           i_ex_m_bhw_type,
+    input                 i_ex_m_isJal,
+    input [31:0]          i_ex_m_pc_plus_8,
 
     input [4:0]           i_m_wb_rd,
     input [31:0]          i_m_wb_alu_result,
     input [31:0]          i_m_wb_read_data,
     input                 i_m_wb_reg_write,
+    input                 i_m_wb_mem_to_reg,
+    input                 i_m_wb_isJal,
+    input [31:0]          i_m_wb_pc_plus_8,
 
     output                o_uart_tx_data_out,
     output [NB_REG-1:0]   o_mips_inst_data,
@@ -133,7 +141,7 @@ reg [NB_REG-1:0] inst_to_mem, next_inst_to_mem;
 reg [7:0] addr_inst, next_addr_inst; 
 reg [DBIT-1:0] data_to_tx, next_data_to_tx; 
 reg [2:0] ifid_byte_counter, next_ifid_byte_counter;
-reg [4:0] idex_byte_counter, next_idex_byte_counter;
+reg [5:0] idex_byte_counter, next_idex_byte_counter;
 reg [3:0] exm_byte_counter, next_exm_byte_counter;
 reg [3:0] mwb_byte_counter, next_mwb_byte_counter;
 reg idle_led, start_led, running_led;
@@ -141,9 +149,9 @@ reg step_mode, next_step_mode;
 reg cicle_done, next_cicle_done;
 
 wire [63:0] if_id_latch_data;
-wire [135:0] idex_latch_data;
-wire [79:0] exm_latch_data;
-wire [71:0] mwb_latch_data;
+wire [167:0] idex_latch_data;
+wire [111:0] exm_latch_data;
+wire [103:0] mwb_latch_data;
 
 assign if_id_latch_data = {i_if_id_pc_plus_4, i_if_id_instruction};
 
@@ -153,15 +161,15 @@ assign idex_latch_data = {i_id_ex_data_1, i_id_ex_data_2,
                           i_id_ex_reg_dest, i_id_ex_mem_read,
                           i_id_ex_mem_write, i_id_ex_reg_write,
                           i_id_ex_alu_src, i_id_ex_mem_to_reg,
-                          i_id_ex_alu_op, i_id_ex_bhw_type, 6'b0}; 
+                          i_id_ex_alu_op, i_id_ex_bhw_type, i_id_ex_isJal, i_id_ex_jalSel, i_id_ex_pc_plus_8, 4'b0}; 
 
 assign exm_latch_data = {i_ex_m_rd, i_ex_m_alu_result, 
                          i_ex_m_write_data, i_ex_m_mem_read,
                          i_ex_m_mem_write, i_ex_m_reg_write,
-                         i_ex_m_mem_to_reg, i_ex_m_bhw_type, 4'b0};
+                         i_ex_m_mem_to_reg, i_ex_m_bhw_type, i_ex_m_isJal, i_ex_m_pc_plus_8, 3'b0};
 
 assign mwb_latch_data = {i_m_wb_rd, i_m_wb_alu_result, 
-                         i_m_wb_read_data, i_m_wb_reg_write, 2'b0};
+                         i_m_wb_read_data, i_m_wb_reg_write, i_m_wb_mem_to_reg, i_m_wb_isJal, i_m_wb_pc_plus_8};
 
 // Señales de control
 reg read_uart_reg, write_uart_reg, write_mem_reg, read_mem_reg, reset_mips_reg;
@@ -390,7 +398,7 @@ always @(*) begin
             else begin
                 next_idex_byte_counter = idex_byte_counter + 1;
 
-                if (idex_byte_counter == 5'b10000) begin
+                if (idex_byte_counter == 5'b10100) begin
                     next_idex_byte_counter = 0;
                     next_state = IDLE; // Vuelve a IDLE después de enviar los datos
                 end
@@ -405,7 +413,7 @@ always @(*) begin
             else begin
                 next_exm_byte_counter = exm_byte_counter + 1;
 
-                if (exm_byte_counter == 4'b1001) begin
+                if (exm_byte_counter == 4'b1101) begin
                     next_exm_byte_counter = 0;
                     next_state = IDLE; // Vuelve a IDLE después de enviar los datos
                 end
@@ -420,7 +428,7 @@ always @(*) begin
             else begin
                 next_mwb_byte_counter = mwb_byte_counter + 1;
 
-                if (mwb_byte_counter == 4'b1000) begin
+                if (mwb_byte_counter == 4'b1100) begin
                     next_mwb_byte_counter = 0;
                     next_state = IDLE; // Vuelve a IDLE después de enviar los datos
                 end
@@ -551,23 +559,27 @@ always @(*) begin
             running_led = 1'b0;
             step_mode = 1'b0;
             case (idex_byte_counter)
-                5'b00000: data_to_tx = idex_latch_data[135:128]; // MSB
-                5'b00001: data_to_tx = idex_latch_data[127:120];
-                5'b00010: data_to_tx = idex_latch_data[119:112];
-                5'b00011: data_to_tx = idex_latch_data[111:104];
-                5'b00100: data_to_tx = idex_latch_data[103:96];
-                5'b00101: data_to_tx = idex_latch_data[95:88];
-                5'b00110: data_to_tx = idex_latch_data[87:80];
-                5'b00111: data_to_tx = idex_latch_data[79:72];
-                5'b01000: data_to_tx = idex_latch_data[71:64];
-                5'b01001: data_to_tx = idex_latch_data[63:56];
-                5'b01010: data_to_tx = idex_latch_data[55:48];
-                5'b01011: data_to_tx = idex_latch_data[47:40];
-                5'b01100: data_to_tx = idex_latch_data[39:32];
-                5'b01101: data_to_tx = idex_latch_data[31:24];
-                5'b01110: data_to_tx = idex_latch_data[23:16];
-                5'b01111: data_to_tx = idex_latch_data[15:8];
-                5'b10000: data_to_tx = idex_latch_data[7:0];   // LSB
+                5'b00000: data_to_tx = idex_latch_data[167:160]; // MSB
+                5'b00001: data_to_tx = idex_latch_data[159:152];
+                5'b00010: data_to_tx = idex_latch_data[151:144];
+                5'b00011: data_to_tx = idex_latch_data[143:136];
+                5'b00100: data_to_tx = idex_latch_data[135:128];
+                5'b00101: data_to_tx = idex_latch_data[127:120];
+                5'b00110: data_to_tx = idex_latch_data[119:112];
+                5'b00111: data_to_tx = idex_latch_data[111:104];
+                5'b01000: data_to_tx = idex_latch_data[103:96];
+                5'b01001: data_to_tx = idex_latch_data[95:88];
+                5'b01010: data_to_tx = idex_latch_data[87:80];
+                5'b01011: data_to_tx = idex_latch_data[79:72];
+                5'b01100: data_to_tx = idex_latch_data[71:64];
+                5'b01101: data_to_tx = idex_latch_data[63:56];
+                5'b01110: data_to_tx = idex_latch_data[55:48];
+                5'b01111: data_to_tx = idex_latch_data[47:40];
+                5'b10000: data_to_tx = idex_latch_data[39:32];
+                5'b10001: data_to_tx = idex_latch_data[31:24];
+                5'b10010: data_to_tx = idex_latch_data[23:16];
+                5'b10011: data_to_tx = idex_latch_data[15:8];
+                5'b10100: data_to_tx = idex_latch_data[7:0];   // LSB
             endcase
         end
 
@@ -582,16 +594,20 @@ always @(*) begin
             running_led = 1'b0;
             step_mode = 1'b0;
             case (exm_byte_counter)
-                4'b0000: data_to_tx = exm_latch_data[79:72]; // MSB
-                4'b0001: data_to_tx = exm_latch_data[71:64];
-                4'b0010: data_to_tx = exm_latch_data[63:56];
-                4'b0011: data_to_tx = exm_latch_data[55:48];
-                4'b0100: data_to_tx = exm_latch_data[47:40];
-                4'b0101: data_to_tx = exm_latch_data[39:32];
-                4'b0110: data_to_tx = exm_latch_data[31:24];
-                4'b0111: data_to_tx = exm_latch_data[23:16];
-                4'b1000: data_to_tx = exm_latch_data[15:8];
-                4'b1001: data_to_tx = exm_latch_data[7:0];   // LSB
+                4'b0000: data_to_tx = exm_latch_data[111:104]; // MSB
+                4'b0001: data_to_tx = exm_latch_data[103:96];
+                4'b0010: data_to_tx = exm_latch_data[95:88];
+                4'b0011: data_to_tx = exm_latch_data[87:80];
+                4'b0100: data_to_tx = exm_latch_data[79:72];
+                4'b0101: data_to_tx = exm_latch_data[71:64];
+                4'b0110: data_to_tx = exm_latch_data[63:56];
+                4'b0111: data_to_tx = exm_latch_data[55:48];
+                4'b1000: data_to_tx = exm_latch_data[47:40];
+                4'b1001: data_to_tx = exm_latch_data[39:32];
+                4'b1010: data_to_tx = exm_latch_data[31:24];
+                4'b1011: data_to_tx = exm_latch_data[23:16];
+                4'b1100: data_to_tx = exm_latch_data[15:8];
+                4'b1101: data_to_tx = exm_latch_data[7:0];   // LSB
             endcase
         end
 
@@ -606,15 +622,19 @@ always @(*) begin
             running_led = 1'b0;
             step_mode = 1'b0;
             case (mwb_byte_counter)
-                4'b0000: data_to_tx = mwb_latch_data[71:64]; // MSB
-                4'b0001: data_to_tx = mwb_latch_data[63:56];
-                4'b0010: data_to_tx = mwb_latch_data[55:48];
-                4'b0011: data_to_tx = mwb_latch_data[47:40];
-                4'b0100: data_to_tx = mwb_latch_data[39:32];
-                4'b0101: data_to_tx = mwb_latch_data[31:24];
-                4'b0110: data_to_tx = mwb_latch_data[23:16];
-                4'b0111: data_to_tx = mwb_latch_data[15:8];
-                4'b1000: data_to_tx = mwb_latch_data[7:0];   // LSB
+                4'b0000: data_to_tx = mwb_latch_data[103:96]; // MSB
+                4'b0001: data_to_tx = mwb_latch_data[95:88];
+                4'b0010: data_to_tx = mwb_latch_data[87:80];
+                4'b0011: data_to_tx = mwb_latch_data[79:72];
+                4'b0100: data_to_tx = mwb_latch_data[71:64];
+                4'b0101: data_to_tx = mwb_latch_data[63:56];
+                4'b0110: data_to_tx = mwb_latch_data[55:48];
+                4'b0111: data_to_tx = mwb_latch_data[47:40];
+                4'b1000: data_to_tx = mwb_latch_data[39:32];
+                4'b1001: data_to_tx = mwb_latch_data[31:24];
+                4'b1010: data_to_tx = mwb_latch_data[23:16];
+                4'b1011: data_to_tx = mwb_latch_data[15:8];
+                4'b1100: data_to_tx = mwb_latch_data[7:0];   // LSB
             endcase
         end
         

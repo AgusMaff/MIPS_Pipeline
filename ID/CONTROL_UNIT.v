@@ -102,7 +102,7 @@ module CONTROL_UNIT (
                             mem_write  = 1'b0;
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // JAL escribe en $rd (registro 31)
-                            jump       = 1'b0; // Señal de salto
+                            jump       = 1'b1; // Señal de salto
                             isJal      = 1'b1; // Es JAL
                             jalSel     = 1'b1; // No es jalr
                             jumpSel    = 1'b0; // No es JR
@@ -131,7 +131,7 @@ module CONTROL_UNIT (
                             is_beq     = 1'b0;
                             reg_dest   = 1'b0; // JR no escribe en registro
                             alu_src    = 1'b0;
-                            alu_op     = 4'b1001; // Operación para JR ()
+                            alu_op     = 4'b0000; // Operación para JR
                             mem_read   = 1'b0;
                             mem_write  = 1'b0;
                             mem_to_reg = 1'b0;

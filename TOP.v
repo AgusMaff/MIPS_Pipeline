@@ -38,15 +38,22 @@ module TOP
     wire id_ex_reg_dest, id_ex_mem_read, id_ex_mem_write, id_ex_reg_write, id_ex_alu_src, id_ex_mem_to_reg;
     wire [3:0] id_ex_alu_op;
     wire [2:0] id_ex_bhw_type;
+    wire id_ex_isJal, id_ex_jalSel;
+    wire [31:0] id_ex_pc_plus_8;
 
     wire [4:0] ex_m_rd;
     wire ex_m_reg_write, ex_m_mem_read, ex_m_mem_write, ex_m_mem_to_reg;
     wire [31:0] ex_m_alu_result, ex_m_write_data;
     wire [2:0] ex_m_bhw_type;
+    wire ex_m_isJal;
+    wire [31:0] ex_m_pc_plus_8;
 
     wire [31:0] m_wb_read_data, m_wb_alu_result;
     wire m_wb_reg_write;
     wire [4:0] m_wb_rd;
+    wire m_wb_mem_to_reg;
+    wire m_wb_isJal;
+    wire [31:0] m_wb_pc_plus_8;
 
 
     clk_wiz_0 u_clk_wiz_0
@@ -95,6 +102,9 @@ module TOP
         .i_id_ex_mem_to_reg(id_ex_mem_to_reg),
         .i_id_ex_alu_op(id_ex_alu_op),
         .i_id_ex_bhw_type(id_ex_bhw_type),
+        .i_id_ex_isJal(id_ex_isJal),
+        .i_id_ex_jalSel(id_ex_jalSel),
+        .i_id_ex_pc_plus_8(id_ex_pc_plus_8),
 
         .i_ex_m_rd(ex_m_rd),
         .i_ex_m_reg_write(ex_m_reg_write),
@@ -104,11 +114,16 @@ module TOP
         .i_ex_m_alu_result(ex_m_alu_result),
         .i_ex_m_write_data(ex_m_write_data),
         .i_ex_m_bhw_type(ex_m_bhw_type),
+        .i_ex_m_isJal(ex_m_isJal),
+        .i_ex_m_pc_plus_8(ex_m_pc_plus_8),
 
         .i_m_wb_read_data(m_wb_read_data),
         .i_m_wb_alu_result(m_wb_alu_result),
         .i_m_wb_reg_write(m_wb_reg_write),
         .i_m_wb_rd(m_wb_rd),
+        .i_m_wb_mem_to_reg(m_wb_mem_to_reg),
+        .i_m_wb_isJal(m_wb_isJal),
+        .i_m_wb_pc_plus_8(m_wb_pc_plus_8),
 
         .o_uart_tx_data_out(uart_tx),
         .o_mips_inst_data(inst_to_load),
@@ -157,6 +172,9 @@ module TOP
         .o_du_id_ex_mem_to_reg(id_ex_mem_to_reg),
         .o_du_id_ex_alu_op(id_ex_alu_op),
         .o_du_id_ex_bhw_type(id_ex_bhw_type),
+        .o_du_id_ex_isJal(id_ex_isJal),
+        .o_du_id_ex_jalSel(id_ex_jalSel),
+        .o_du_id_ex_pc_plus_8(id_ex_pc_plus_8),
 
         .o_du_ex_m_rd(ex_m_rd),
         .o_du_ex_m_reg_write(ex_m_reg_write),
@@ -166,11 +184,16 @@ module TOP
         .o_du_ex_m_alu_result(ex_m_alu_result),
         .o_du_ex_m_write_data(ex_m_write_data),
         .o_du_ex_m_bhw_type(ex_m_bhw_type),
+        .o_du_ex_m_isJal(ex_m_isJal),
+        .o_du_ex_m_pc_plus_8(ex_m_pc_plus_8),
 
         .o_du_m_wb_read_data(m_wb_read_data),
         .o_du_m_wb_alu_result(m_wb_alu_result),
         .o_du_m_wb_reg_write(m_wb_reg_write),
         .o_du_m_wb_rd(m_wb_rd),
+        .o_du_m_wb_mem_to_reg(m_wb_mem_to_reg),
+        .o_du_m_wb_isJal(m_wb_isJal),
+        .o_du_m_wb_pc_plus_8(m_wb_pc_plus_8),
 
         .o_du_regs_mem_data(reg_data_wire),
         .o_du_mem_data(mem_data_wire)

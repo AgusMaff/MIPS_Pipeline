@@ -14,13 +14,13 @@ module PC(
 
     // Inicialización del PC
     initial begin
-        pc_reg =  {7{1'b0}}; // Comienza en 0
+        pc_reg =  8'b00000000; // Comienza en 0
     end
 
     // Proceso de actualización del PC
     always @(posedge clk or posedge reset) begin
         if (reset || write_en) begin
-            pc_reg <=  {7{1'b0}}; // Resetea el PC a 0
+            pc_reg <=  8'b00000000; // Resetea el PC a 0
         end else if (stall) begin
             // Si hay un stall, no actualiza el PC
             pc_reg <= pc_reg; // Mantiene el valor actual del PC
