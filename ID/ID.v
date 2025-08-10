@@ -40,6 +40,10 @@ module ID (
     output wire        o_mem_to_reg,
     output wire        o_reg_write,
     output wire        o_jump,
+    output wire        o_isJal,
+    output wire        o_jalSel,
+    output wire        o_jumpSel, // Output jump select signal for JR
+    output wire [31:0] o_pc_plus_8, // PC + 8 for JAL
     output wire [2:0]  o_bhw_type,
     output wire        o_flush_idex,
     output wire        o_stall,
@@ -50,6 +54,7 @@ module ID (
     wire [31:0] data_1;
     wire [31:0] data_2;
     wire        branch;
+    wire        jumpSel;
     wire        forward_a;
     wire        forward_b;
     wire [31:0] shifted_extended_beq_offset;
@@ -89,10 +94,13 @@ module ID (
         .mem_to_reg(o_mem_to_reg),
         .reg_write(o_reg_write),
         .jump(o_jump),
+        .isJal(o_isJal),
+        .jalSel(o_jalSel),
+        .jumpSel(o_jumpSel),
         .bhw_type(o_bhw_type),
         .halt(o_halt)
     );
-
+    
     HAZARD_UNIT hazard_unit (
         .branch(branch),
         .if_id_rs(i_rs),
@@ -146,6 +154,13 @@ module ID (
         .operation(6'b100001),        
         .result(o_beq_jump_dir)        
     );
+
+    ALU adder4 (
+        .data_a(i_pc_plus_4),     
+        .data_b(32'b00000000000000000000000000000100),             
+        .operation(6'b100001),        
+        .result(o_pc_plus_8)        
+    );  
 
     COMPARATOR comparator (
         .data_a(o_data_1),

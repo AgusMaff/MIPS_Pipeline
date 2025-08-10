@@ -12,10 +12,15 @@ module IF(
     input  wire [31:0] i_data,         // Datos a escribir en memoria de instrucciones (no se usa en IF)
     input  wire [31:0] i_addr_wr,      // Dirección de escritura en memoria de instrucciones (no se usa en IF)
     input  wire [31:0] i_beq_dir,      // Dirección de salto para BEQ
+    input  wire [31:0] i_prev_instruction, // Instrucción previa para la unidad de depuración
+    input  wire [31:0] i_jr_jump_addr, // Dirección de salto para JR
+    input wire         i_jumpSel,      // Bit de control para JR
+
     output wire [31:0] o_pc_plus_4,    // PC + 4
     output wire [31:0] o_instruction   // Instrucción leída
 );
     wire [31:0] next_pc;            // Siguiente PC
+    wire [31:0] jump_or_next_pc;    // PC de salto o siguiente PC
     wire [31:0] next_pc_final;      // PC final
     wire [31:0] pc_to_instmem;      // PC actual
     wire [31:0] jmp_dir;            // Dirección de salto para JMP
@@ -31,6 +36,13 @@ module IF(
         .input_1(next_pc),
         .input_2(jmp_dir),
         .selection_bit(i_jump),
+        .mux(jump_or_next_pc)
+    );
+
+    MUX2TO1 mux_next_pc_or_jr(
+        .input_1(jump_or_next_pc),
+        .input_2(i_jr_jump_addr), // Instrucción previa para JR
+        .selection_bit(i_jumpSel), // Bit de control para JR
         .mux(next_pc_final)
     );
 
@@ -64,8 +76,8 @@ module IF(
 
     SHFT2L shft2l (
         .pc_plus_4(o_pc_plus_4[31:28]),
-        .shift(o_instruction[25:0]),   // PC actual
-        .jump_dir(jmp_dir)             // PC desplazado a la izquierda 2 bits
+        .shift(i_prev_instruction[25:0]),   // PC actual
+        .jump_dir(jmp_dir)        // PC desplazado a la izquierda 2 bits
     );
 
 

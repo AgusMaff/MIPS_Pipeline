@@ -3,6 +3,7 @@
 module CONTROL_UNIT (
     input  wire       enable,         // Habilitación de unidad de control
     input  wire [5:0] op_code,        // Código de operación de la instrucción
+
     output reg        branch,         // Señal de ramificación
     output reg        is_beq,         // Señal de BEQ
     output reg        reg_dest,       // Señal de destino de registro
@@ -13,6 +14,9 @@ module CONTROL_UNIT (
     output reg        mem_to_reg,     // Señal de escritura de memoria a registro
     output reg        reg_write,      // Señal de escritura en registro
     output reg        jump,           // Señal de salto
+    output reg        isJal,          // Señal de JAL
+    output reg        jalSel,         // Señal de JAL para jalr
+    output reg        jumpSel,        // Jump o JR
     output reg  [2:0] bhw_type,       // Tipo de instrucción de carga/almacenamiento (BHW)
     output reg        halt            // Señal de parada (HALT)
 );
@@ -33,6 +37,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1;
                             jump       = 1'b0; 
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b000; // Tipo de instrucción R
                             halt       = 1'b0; // No es HALT
                         end
@@ -47,6 +53,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b0;
                             jump       = 1'b0; 
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b000; // Tipo de instrucción R
                             halt       = 1'b0; // No es HALT
                         end
@@ -61,6 +69,9 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b0;
                             jump       = 1'b0; 
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b000; // Tipo de instrucción R
                             halt       = 1'b0; // No es HALT
                         end
@@ -75,23 +86,63 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b0;
                             jump       = 1'b1; // Señal de salto
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b000; // Tipo de instrucción R
                             halt       = 1'b0; // No es HALT
                         end
                         3'b011: begin //JAL
                             branch     = 1'b0;
                             is_beq     = 1'b0;
-                            reg_dest   = 1'b1; // JAL escribe en $rd
-                            alu_src    = 1'b0;
-                            alu_op     = 4'b0101; 
+                            reg_dest   = 1'b1; // JAL escribe en $rd (registro 31)
+                            alu_src    = 1'b1;
+                            alu_op     = 4'b1001; // Operación para JAL (ADDIU al registro 31)
                             mem_read   = 1'b0;
                             mem_write  = 1'b0;
                             mem_to_reg = 1'b0;
-                            reg_write  = 1'b1; // JAL escribe en $rd
-                            jump       = 1'b1; // Señal de salto
+                            reg_write  = 1'b1; // JAL escribe en $rd (registro 31)
+                            jump       = 1'b0; // Señal de salto
+                            isJal      = 1'b1; // Es JAL
+                            jalSel     = 1'b1; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b000; // Tipo de instrucción R
                             halt       = 1'b0; // No es HALT
-                        end        
+                        end   
+                        3'b001: begin //JALR
+                            branch     = 1'b0;
+                            is_beq     = 1'b0;
+                            reg_dest   = 1'b1; // JALR escribe en $rd (registro 31)
+                            alu_src    = 1'b0;
+                            alu_op     = 4'b1001; // Operación para JALR (ADDIU al registro destino)
+                            mem_read   = 1'b0;
+                            mem_write  = 1'b0;
+                            mem_to_reg = 1'b0;
+                            reg_write  = 1'b1; // JALR escribe en $rd (registro 31)
+                            jump       = 1'b0; // Señal de salto
+                            isJal      = 1'b1; // ES tipo JAL
+                            jalSel     = 1'b0; // Es jalr
+                            jumpSel    = 1'b0; // No es JR
+                            bhw_type   = 3'b000; // Tipo de instrucción R
+                            halt       = 1'b0; // No es HALT
+                        end     
+                        3'b110: begin //JR
+                            branch     = 1'b0;
+                            is_beq     = 1'b0;
+                            reg_dest   = 1'b0; // JR no escribe en registro
+                            alu_src    = 1'b0;
+                            alu_op     = 4'b1001; // Operación para JR ()
+                            mem_read   = 1'b0;
+                            mem_write  = 1'b0;
+                            mem_to_reg = 1'b0;
+                            reg_write  = 1'b0; // JR no escribe en registro
+                            jump       = 1'b0; // Señal de salto
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b1; // Es JR
+                            bhw_type   = 3'b000; // Tipo de instrucción R
+                            halt       = 1'b0; // No es HALT
+                        end
                     endcase
                 end
 
@@ -108,6 +159,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b1; // Escribir en registro desde memoria
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b001; // Tipo de instrucción de carga (Palabra completa)
                             halt       = 1'b0; // No es HALT
                         end
@@ -122,6 +175,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b1; // Escribir en registro desde memoria
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b010; // Tipo de instrucción de carga (Media palabra)
                             halt       = 1'b0; // No es HALT
                         end
@@ -136,6 +191,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b1; // Escribir en registro desde memoria
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b100; // Tipo de instrucción de carga (Byte)
                             halt       = 1'b0; // No es HALT
                         end
@@ -150,6 +207,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b1; // Escribir en registro desde memoria
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b101; // Tipo de instrucción de carga (Palabra completa)
                             halt       = 1'b0; // No es HALT
                         end
@@ -164,6 +223,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b1; // Escribir en registro desde memoria
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b110; // Tipo de instrucción de carga (Byte)
                             halt       = 1'b0; // No es HALT
                         end
@@ -178,6 +239,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b1; // Escribir en registro desde memoria
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b111; // Tipo de instrucción de carga (Media palabra)
                             halt       = 1'b0; // No es HALT
                         end
@@ -197,6 +260,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0; // No se escribe en registro
                             reg_write  = 1'b0; // No se habilita escritura en registro
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b001; // Tipo de instrucción de almacenamiento (Palabra completa)
                             halt       = 1'b0; // No es HALT
                         end
@@ -211,6 +276,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0; // No se escribe en registro
                             reg_write  = 1'b0; // No se habilita escritura en registro
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b010; // Tipo de instrucción de almacenamiento (Media palabra)
                             halt       = 1'b0; // No es HALT
                         end
@@ -225,6 +292,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0; // No se escribe en registro
                             reg_write  = 1'b0; // No se habilita escritura en registro
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b100; // Tipo de instrucción de almacenamiento (Byte)
                             halt       = 1'b0; // No es HALT
                         end
@@ -244,6 +313,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b000; // Tipo de instrucción I
                             halt       = 1'b0; // No es HALT
                         end
@@ -258,6 +329,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b000; // Tipo de instrucción I
                             halt       = 1'b0; // No es HALT
                         end
@@ -272,6 +345,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b000; // Tipo de instrucción I
                             halt       = 1'b0; // No es HALT
                         end
@@ -286,6 +361,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b000; // Tipo de instrucción I
                             halt       = 1'b0; // No es HALT
                         end
@@ -300,6 +377,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b000; // Tipo de instrucción I
                             halt       = 1'b0; // No es HALT
                         end
@@ -314,6 +393,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b000; // Tipo de instrucción I
                             halt       = 1'b0; // No es HALT
                         end
@@ -328,6 +409,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b000; // Tipo de instrucción I
                             halt       = 1'b0; // No es HALT
                         end
@@ -342,6 +425,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b1; // Habilitar escritura en registro
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b000; // Tipo de instrucción I
                             halt       = 1'b0; // No es HALT
                         end
@@ -361,6 +446,8 @@ module CONTROL_UNIT (
                             mem_to_reg = 1'b0;
                             reg_write  = 1'b0;
                             jump       = 1'b0;
+                            isJal      = 1'b0; // No es JAL
+                            jalSel     = 1'b0; // No es jalr
                             bhw_type   = 3'b000; // Tipo de instrucción R
                             halt       = 1'b1; // Señal de parada (HALT)
                         end
@@ -379,6 +466,8 @@ module CONTROL_UNIT (
                     mem_to_reg = 1'b0;
                     reg_write  = 1'b0;
                     jump       = 1'b0;
+                    isJal      = 1'b0; // No es JAL
+                    jalSel     = 1'b0; // No es jalr
                     bhw_type   = 3'b000; // Tipo de instrucción R
                     halt       = 1'b0; // No es HALT
                 end
@@ -394,6 +483,8 @@ module CONTROL_UNIT (
             mem_to_reg = 1'b0;
             reg_write  = 1'b0;
             jump       = 1'b0;
+            isJal      = 1'b0; // No es JAL
+            jalSel     = 1'b0; // No es jalr
             bhw_type   = 3'b000; // Tipo de instrucción R
             halt       = 1'b0; // No es HALT
         end

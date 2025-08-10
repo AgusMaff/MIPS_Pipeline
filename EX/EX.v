@@ -21,6 +21,9 @@ module EX (
     input wire [4:0]  i_ex_m_rd,              // ID del registro destino de la etapa EX/MEM
     input wire        i_m_wb_reg_write,            // Señal de escritura de registro de la etapa MEM/WB
     input wire [4:0]  i_m_wb_rd,                   // ID del registro destino de la etapa MEM/WB
+    input wire        i_id_ex_isJal,              // Señal de escritura de registro para instrucciones JAL
+    input wire        i_id_ex_jalSel,              // Señal de selección para JALR
+    input wire [31:0] i_id_ex_pc_plus_8,          // PC + 8 para la etapa ID/EX
     input wire [2:0]  i_ex_m_bhw_type,          // Tipo de instrucción (Byte, Halfword, Word)
     input wire        i_ex_m_halt,              // Señal de parada de la etapa EX/MEM
 
@@ -31,6 +34,8 @@ module EX (
     output wire        o_ex_m_mem_write,           // Señal de lectura de memoria
     output wire        o_ex_m_mem_to_reg,          // Señal de escritura de registro
     output wire        o_ex_m_reg_write,           // Señal de escritura de registro
+    output wire        o_ex_m_isJal,               // Señal de escritura de registro para instrucciones JAL
+    output wire [31:0] o_ex_m_pc_plus_8,          // PC + 8 para la etapa EX/MEM
     output wire [2:0]  o_ex_m_bhw_type,             // Tipo de instrucción (Byte, Halfword, Word)
     output wire        o_ex_m_halt                   // Señal de parada de la etapa EX/MEM
 );
@@ -41,6 +46,7 @@ module EX (
     wire [31:0] data_2;
     wire [31:0] operando_b;
     wire [5:0] alu_control_signal; // Señal de control de la ALU
+    wire [4:0] rd_mux_out;
 
     assign o_ex_m_write_data = data_2; // Datos a escribir en memoria
     assign o_ex_m_mem_read = i_id_ex_mem_read; // Señal de lectura de memoria
@@ -49,6 +55,8 @@ module EX (
     assign o_ex_m_reg_write = i_id_ex_reg_write; // Señal de escritura de registro
     assign o_ex_m_bhw_type = i_ex_m_bhw_type; // Tipo de instrucción (Byte, Halfword, Word)
     assign o_ex_m_halt = i_ex_m_halt; // Señal de parada de la etapa EX/MEM
+    assign o_ex_m_isJal = i_id_ex_isJal; // Señal de escritura de registro para instrucciones JAL
+    assign o_ex_m_pc_plus_8 = i_id_ex_pc_plus_8; // PC + 8 para la etapa EX/MEM
 
     FORWARDING_UNIT_EX forwarding_unit (
         .id_ex_rs(i_id_ex_rs),
@@ -88,6 +96,13 @@ module EX (
         .input_1(i_id_ex_rt),
         .input_2(i_id_ex_rd),
         .selection_bit(i_id_ex_reg_dst),
+        .mux(rd_mux_out)
+    );
+
+    MUX2TO1 mux_jalr (
+        .input_1(rd_mux_out),
+        .input_2(31'd31),
+        .selection_bit(i_id_ex_jalSel),
         .mux(o_ex_m_rd)
     );
 

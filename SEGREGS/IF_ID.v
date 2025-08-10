@@ -15,7 +15,8 @@ module IF_ID (
     output reg  [4:0]  id_rd,
     output reg  [15:0] id_beq_offset,
     output reg  [5:0]  id_opcode,
-    output reg  [5:0]  id_function_code
+    output reg  [5:0]  id_function_code,
+    output reg  [31:0] id_instruction // Output instruction for ID stage
 );
 
     always @(posedge clk or posedge reset) begin
@@ -27,6 +28,7 @@ module IF_ID (
             id_beq_offset <= 16'b0;
             id_opcode <= 6'b0;
             id_function_code <= 6'b0;
+            id_instruction <= 32'b0; // Reset instruction
         end else if (flush) begin
             id_pc_plus_4 <= 32'b0;
             id_rs <= 5'b0;
@@ -35,6 +37,7 @@ module IF_ID (
             id_beq_offset <= 16'b0;
             id_opcode <= 6'b0;
             id_function_code <= 6'b0;
+            id_instruction <= 32'b0; // Reset instruction
         end else if (!stall && clk_en) begin
             id_pc_plus_4 <= if_pc_plus_4;
             id_rs <= if_instruction[25:21];
@@ -43,6 +46,7 @@ module IF_ID (
             id_beq_offset <= if_instruction[15:0];
             id_opcode <= if_instruction[31:26];
             id_function_code <= if_instruction[5:0];
+            id_instruction <= if_instruction; // Store instruction for ID stage
         end
     end
 endmodule

@@ -21,16 +21,18 @@ STEP_CMD             = 0x0D
 OPCODES = {
     "ADD": 0x00, "SUB": 0x00, "AND": 0x00, "OR": 0x00, "XOR": 0x00, "NOR": 0x00, "SLT": 0x00,
     "ADDU": 0x00, "SUBU": 0x00, "SLTU": 0x00, "SLL": 0x00, "SRL": 0x00, "SRA": 0x00,
-    "SLLV": 0x00, "SRLV": 0x00, "SRAV": 0x00,
+    "SLLV": 0x00, "SRLV": 0x00, "SRAV": 0x00, "JALR": 0x00, "JR": 0x06,  # ✅ Tipo R
     "LW": 0x23, "SW": 0x2B, "LB": 0x20, "LH": 0x21, "LWU": 0x27, "LBU": 0x24, "LHU": 0x25,
-    "SH": 0x29, "SB": 0x28, "ADDI": 0x09, "ADDIU": 0x09, "ANDI": 0x0C, "ORI": 0x0D, "XORI": 0x0E,
-    "LUI": 0x0F, "SLTI": 0x0A, "SLTIU": 0x0B, "BEQ": 0x04, "BNE": 0x05, "HALT": 0x3F
+    "SH": 0x29, "SB": 0x28, "ADDI": 0x08, "ADDIU": 0x09, "ANDI": 0x0C, "ORI": 0x0D, "XORI": 0x0E,  # ✅ ADDI corregido
+    "LUI": 0x0F, "SLTI": 0x0A, "SLTIU": 0x0B, "BEQ": 0x04, "BNE": 0x05, 
+    "J": 0x02, "JAL": 0x03, "HALT": 0x3F
 }
 
 FUNCTION_CODES = {
     "ADD": 0x20, "SUB": 0x22, "AND": 0x24, "OR": 0x25, "XOR": 0x26, "NOR": 0x27, "SLT": 0x2A,
     "ADDU": 0x21, "SUBU": 0x23, "SLTU": 0x2B, "SLL": 0x00, "SRL": 0x02, "SRA": 0x03,
-    "SLLV": 0x04, "SRLV": 0x06, "SRAV": 0x07
+    "SLLV": 0x04, "SRLV": 0x06, "SRAV": 0x07,
+    "JALR": 0x09, "JR": 0x08
 }
 
 REGS = {
@@ -56,14 +58,67 @@ def encode_instruction(mnemonic, operands):
     # Tipo R
     if opcode == 0x00:
         funct = FUNCTION_CODES[mnemonic]
-        rs = REGS[operands[0]]
-        rt = REGS[operands[1]]
-        rd = REGS[operands[2]]
-        sa = 0
-
+        if mnemonic == "JALR":
+            # JALR rs, rd (formato: JALR $rs, $rd)
+            if len(operands) != 2:
+                raise ValueError("JALR requiere 2 operandos: rs, rd")
+            rs = REGS[operands[0]]
+            rd = REGS[operands[1]]
+            rt = 0  # rt no se usa en JALR
+            sa = 0  # sa no se usa en JALR
+            instr = (opcode << 26) | (rs << 21) | (rt << 16) | (rd << 11) | (sa << 6) | funct
+            print(f"JALR codificado: opcode=0x{opcode:02X}, rs={rs}, rt={rt}, rd={rd}, sa={sa}, funct=0x{funct:02X}")
+        else: 
+            funct = FUNCTION_CODES[mnemonic]
+            rs = REGS[operands[0]]
+            rt = REGS[operands[1]]
+            rd = REGS[operands[2]]
+            sa = 0
         instr = (opcode << 26) | (rs << 21) | (rt << 16) | (rd << 11) | (sa << 6) | funct
         return instr
-
+    
+    elif mnemonic in ["J", "JAL"]:
+        if len(operands) != 1:
+            raise ValueError(f"{mnemonic} requiere 1 operando: dirección")
+        
+        # Parsear la dirección (puede ser decimal, hex, o etiqueta)
+        try:
+            if operands[0].startswith('0x') or operands[0].startswith('0X'):
+                target_addr = int(operands[0], 16)
+            else:
+                target_addr = int(operands[0])
+        except ValueError:
+            # Si no es un número, asumir que es una etiqueta (por ahora usar 0)
+            print(f"Advertencia: Etiqueta '{operands[0]}' no resuelta, usando dirección 0")
+            target_addr = 0
+        
+        # Verificar rango de dirección (26 bits = 0 a 67,108,863)
+        # En MIPS, la dirección se desplaza 2 bits a la derecha porque las instrucciones
+        # están alineadas a 4 bytes, así que el rango efectivo es 0 a 268,435,452
+        max_addr = (1 << 28) - 4  # 268,435,452
+        if target_addr < 0 or target_addr > max_addr:
+            raise ValueError(f"Dirección {target_addr} fuera del rango válido (0 - {max_addr})")
+        
+        if target_addr % 4 != 0:
+            raise ValueError(f"Dirección {target_addr} debe ser múltiplo de 4")
+        
+        # Convertir dirección a campo de 26 bits (dividir por 4)
+        jump_addr = (target_addr >> 2) & 0x3FFFFFF  # 26 bits
+        
+        instr = (opcode << 26) | jump_addr
+        print(f"{mnemonic} codificado: opcode=0x{opcode:02X}, target_addr={target_addr}, jump_addr=0x{jump_addr:07X}")
+        return instr
+    elif mnemonic == "JR":
+        if len(operands) != 1:
+            raise ValueError("JR requiere 1 operando: rs")
+        rs = REGS[operands[0]]
+        rt = 0  # rt no se usa en JR
+        rd = 0  # rd no se usa en JR
+        sa = 0  # sa no se usa en JR
+        funct = FUNCTION_CODES[mnemonic]  # 0x08
+        instr = (opcode << 26) | (rs << 21) | (rt << 16) | (rd << 11) | (sa << 6) | funct
+        print(f"JR codificado: opcode=0x{opcode:02X}, rs={rs}, rt={rt}, rd={rd}, sa={sa}, funct=0x{funct:02X}")
+        return instr
     # Tipo I
     elif mnemonic in ["LW", "SW", "LB", "LH", "LWU", "LBU", "LHU", "SB", "SH"]:
         # Formato: OP rt, offset(base)

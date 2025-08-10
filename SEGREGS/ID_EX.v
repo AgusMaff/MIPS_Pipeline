@@ -18,6 +18,9 @@ module ID_EX (
     input  wire        id_m_mem_write,
     input  wire        id_wb_mem_to_reg,
     input  wire        id_wb_reg_write,
+    input  wire        id_ex_isJal,
+    input  wire        id_ex_jalSel, // Bit de control para jalr
+    input  wire [31:0] id_ex_pc_plus_8, // PC + 8 para la etapa ID/EX
     input  wire [2:0]  id_bhw_type,
     input  wire        id_ex_halt,
 
@@ -35,6 +38,9 @@ module ID_EX (
     output reg        ex_m_mem_write,
     output reg        ex_wb_mem_to_reg,
     output reg        ex_wb_reg_write,
+    output reg        ex_isJal,
+    output reg        ex_jalSel, // Bit de control para jalr
+    output reg [31:0] ex_pc_plus_8, // PC + 8 para la etapa ID/EX
     output reg [2:0]  ex_bhw_type,
     output reg        ex_halt
 );
@@ -58,6 +64,9 @@ module ID_EX (
             ex_wb_reg_write <= 1'b0;
             ex_bhw_type <= 3'b0;
             ex_halt <= 1'b0;
+            ex_isJal <= 1'b0;
+            ex_jalSel <= 1'b0; // Resetea el bit de control para jalr
+            ex_pc_plus_8 <= 32'b0; // Resetea el PC + 8
         end else if (clk_en) begin
             ex_dato_1 <= id_dato_1;
             ex_dato_2 <= id_dato_2;   
@@ -75,6 +84,9 @@ module ID_EX (
             ex_wb_reg_write <= id_wb_reg_write; 
             ex_bhw_type <= id_bhw_type;
             ex_halt <= id_ex_halt;
+            ex_isJal <= id_ex_isJal;
+            ex_jalSel <= id_ex_jalSel; // Asigna el bit de control para jalr
+            ex_pc_plus_8 <= id_ex_pc_plus_8;
         end
     end
 endmodule

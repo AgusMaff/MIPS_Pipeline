@@ -52,6 +52,7 @@ module PIPELINE (
     //Señales de control
     wire pcsrc; // Señal de selección de PC
     wire jump; // Señal de salto
+    wire jumpSel; // Bit de control para JR
     wire flush_idex; // Señal de flush para la etapa ID/EX
     wire stall; // Señal de stall
     wire end_program;
@@ -70,6 +71,7 @@ module PIPELINE (
     wire [15:0] id_beq_offset; // Offset para la instrucción BEQ
     wire [5:0] id_opcode; // Opcode de la instrucción
     wire [5:0] id_function_code; // Código de función de la instrucción
+    wire [31:0] id_instruction; // Instrucción leída
 
     wire [31:0] id_ex_data_1; // Dato 1 de la etapa ID/EX
     wire [31:0] id_ex_data_2; // Dato 2 de la etapa ID/EX
@@ -85,6 +87,9 @@ module PIPELINE (
     wire id_ex_mem_write; // Señal de escritura de memoria
     wire id_ex_mem_to_reg; // Señal de escritura de registro desde memoria
     wire id_ex_reg_write; // Señal de escritura de registro
+    wire id_ex_isJal; // Señal de salto JAL
+    wire id_ex_jalSel; // Señal de selección para JALR
+    wire [31:0] id_ex_pc_plus_8; // PC + 8 para la etapa ID/EX
     wire [2:0] id_ex_bhw_type; // Tipo de instrucción (Byte, Halfword, Word)
     wire id_ex_halt; // Señal de parada
 
@@ -102,6 +107,9 @@ module PIPELINE (
     wire ex_read; // Señal de lectura de memoria de la etapa ID/EX
     wire ex_write; // Señal de escritura de memoria de la etapa ID/EX
     wire ex_to_reg; // Señal de escritura de registro desde memoria de la etapa ID/EX
+    wire ex_isJal; // Señal de escritura de registro de la etapa ID/EX
+    wire ex_jalSel; // Señal de selección para JALR
+    wire [31:0] ex_pc_plus_8; // PC + 8 para la etapa ID/EX
     wire [2:0] ex_bhw_type; // Tipo de instrucción (Byte, Halfword, Word) de la etapa ID/EX
     wire ex_halt; // Señal de parada de la etapa ID/EX
 
@@ -112,6 +120,8 @@ module PIPELINE (
     wire ex_m_mem_write; // Señal de escritura de memoria de la etapa ID/EX
     wire ex_m_mem_to_reg; // Señal de escritura de registro desde memoria de la etapa ID/EX
     wire ex_m_reg_write; // Señal de escritura de registro de la etapa ID/EX
+    wire ex_m_isJal; // Señal de escritura de registro de la etapa ID/EX
+    wire [31:0] ex_m_pc_plus_8; // PC + 8 para la etapa ID/EX
     wire [2:0] ex_m_bhw_type; // Tipo de instrucción (Byte, Halfword, Word) de la etapa ID/EX
     wire ex_m_halt; // Señal de parada de la etapa ID/EX
 
@@ -123,6 +133,8 @@ module PIPELINE (
     wire m_mem_write;
     wire m_mem_to_reg;
     wire m_reg_write;
+    wire m_isJal;
+    wire [31:0] m_pc_plus_8; // PC + 8 para la etapa MEM
     wire [2:0] m_bhw_type;
     wire m_halt;
 
@@ -131,6 +143,8 @@ module PIPELINE (
     wire [31:0] m_wb_alu_result; // Resultado de la ALU para la etapa WB
     wire m_wb_mem_to_reg; // Señal de escritura de registro desde memoria para la etapa WB
     wire m_wb_reg_write; // Señal de escritura de registro para la etapa WB
+    wire m_wb_isJal; // Señal de escritura de registro para la etapa WB
+    wire [31:0] m_wb_pc_plus_8; // PC + 8 para la etapa WB
     wire m_wb_halt; // Señal de parada para la etapa WB
 
     // Etapa WB
@@ -140,6 +154,8 @@ module PIPELINE (
     wire wb_reg_write; // Señal de escritura de registro para la etapa WB
     wire wb_mem_to_reg; // Señal de escritura de registro desde memoria para la etapa WB
     wire [31:0] wb_alu_result; // Resultado de la ALU para la etapa WB
+    wire wb_isJal;
+    wire [31:0] wb_pc_plus_8; // PC + 8 para la etapa WB
     wire wb_halt; // Señal de parada para la etapa WB
 
     // Regs and Mem data wires
@@ -158,6 +174,9 @@ module PIPELINE (
         .i_data(i_du_data), // No data to write in instruction memory
         .i_addr_wr(i_du_inst_addr_wr), // No address to write in instruction memory
         .i_beq_dir(if_beq_jump_dir), // No branch direction for now
+        .i_prev_instruction(id_instruction), // Previous instruction for debug unit
+        .i_jr_jump_addr(id_ex_data_1), // Jump address for JR
+        .i_jumpSel(jumpSel), // Jump select signal for JR
 
         .o_pc_plus_4(if_id_pc_plus_4), // Output PC + 4 (not connected)
         .o_instruction(if_id_instruction) // Output instruction (not connected)
@@ -178,7 +197,8 @@ module PIPELINE (
         .id_rd(id_rd), // Output rd for ID stage (not connected)
         .id_beq_offset(id_beq_offset), // Output BEQ offset for ID stage (not connected)
         .id_opcode(id_opcode), // Output opcode for ID stage (not connected)
-        .id_function_code(id_function_code) // Output function code for ID stage (not connected)
+        .id_function_code(id_function_code), // Output function code for ID stage (not connected)
+        .id_instruction(id_instruction)
     );
 
     ID id_stage (
@@ -221,6 +241,10 @@ module PIPELINE (
         .o_mem_to_reg(id_ex_mem_to_reg), // Output mem to reg signal for ID stage (not connected)
         .o_reg_write(id_ex_reg_write), // Output reg write signal for ID stage (not connected)
         .o_jump(jump), // Output jump signal for ID stage (not connected)
+        .o_isJal(id_ex_isJal), // Output isJal signal for ID stage (not connected)
+        .o_pc_plus_8(id_ex_pc_plus_8), // Output PC + 8 for ID stage (not connected)
+        .o_jalSel(id_ex_jalSel), // Output jalSel signal for ID stage (not connected)
+        .o_jumpSel(jumpSel), // Output jump select signal for JR
         .o_bhw_type(id_ex_bhw_type), // Output bhw type signal for
         .o_flush_idex(flush_idex), // Output flush ID/EX signal for ID stage (not connected)
         .o_stall(stall), // Output stall signal for ID stage (not connected)p signal for ID stage (not connected)
@@ -246,6 +270,9 @@ module PIPELINE (
         .id_m_mem_write(id_ex_mem_write), // Mem write signal from ID stage (not connected)
         .id_wb_mem_to_reg(id_ex_mem_to_reg), // Mem to reg signal from ID stage (not connected)
         .id_wb_reg_write(id_ex_reg_write), // Reg write signal from ID stage (not connected)
+        .id_ex_isJal(id_ex_isJal), // JAL signal from ID stage (not connected)
+        .id_ex_jalSel(id_ex_jalSel), // JALR signal from ID stage (not connected)
+        .id_ex_pc_plus_8(id_ex_pc_plus_8), // PC + 8 for ID/EX stage (not connected)
         .id_bhw_type(id_ex_bhw_type), // BHW type signal from ID stage (not connected)
         .id_ex_halt(id_ex_halt), // Halt signal from ID stage (not connected)
 
@@ -263,6 +290,9 @@ module PIPELINE (
         .ex_m_mem_write(ex_write), // Output mem write signal for EX stage (not connected)
         .ex_wb_mem_to_reg(ex_to_reg), // Output mem to reg signal for EX stage (not connected)
         .ex_wb_reg_write(ex_reg_write), // Output reg write signal for EX stage (not connected)
+        .ex_isJal(ex_isJal), // Output isJal signal for EX stage (not connected)
+        .ex_jalSel(ex_jalSel), // Output jalSel signal for EX stage (not connected)
+        .ex_pc_plus_8(ex_pc_plus_8), // Output PC + 8 for EX stage (not connected)
         .ex_bhw_type(ex_bhw_type), // Output bhw type signal for EX stage (not connected)
         .ex_halt(ex_halt) // Output halt signal for EX stage (not connected)
     );  
@@ -288,6 +318,9 @@ module PIPELINE (
         .i_ex_m_rd(m_rd), // rd from EX stage (not connected)
         .i_m_wb_reg_write(wb_reg_write), // Reg write signal from MEM stage (not connected)
         .i_m_wb_rd(wb_rd), // Write back rd from MEM stage (not connected)
+        .i_id_ex_isJal(ex_isJal), // JAL signal from EX stage (not connected)
+        .i_id_ex_jalSel(ex_jalSel), // JALR signal from EX stage (not connected)
+        .i_id_ex_pc_plus_8(ex_pc_plus_8), // PC + 8 for EX stage (not connected)
         .i_ex_m_bhw_type(ex_bhw_type), // BHW type signal from EX stage (not connected)
         .i_ex_m_halt(ex_halt), // Halt signal from EX stage (not connected)
 
@@ -297,8 +330,10 @@ module PIPELINE (
         .o_ex_m_mem_read(ex_m_mem_read), // Output mem read signal for EX stage (not connected)
         .o_ex_m_mem_write(ex_m_mem_write), // Output mem write signal for EX stage (not connected)
         .o_ex_m_mem_to_reg(ex_m_mem_to_reg), // Output mem to reg signal for EX stage (not connected)
-        .o_ex_m_reg_write(ex_m_reg_write), // Output reg write signal for EX stage (not connected) 
-        .o_ex_m_bhw_type(ex_m_bhw_type), // Output bhw type signal for EX stage (not connected) 
+        .o_ex_m_reg_write(ex_m_reg_write), // Output reg write signal for EX stage (not connected)
+        .o_ex_m_isJal(ex_m_isJal), // Output isJal signal for EX stage (not connected)
+        .o_ex_m_pc_plus_8(ex_m_pc_plus_8), // Output PC + 8 for EX stage (not connected)
+        .o_ex_m_bhw_type(ex_m_bhw_type), // Output bhw type signal for EX stage (not connected)
         .o_ex_m_halt(ex_m_halt) // Output halt signal for EX stage (not connected)
     );
 
@@ -313,6 +348,8 @@ module PIPELINE (
         .i_ex_m_mem_write(ex_m_mem_write), // Mem write signal from EX stage
         .i_ex_m_mem_to_reg(ex_m_mem_to_reg), // Mem to reg signal
         .i_ex_m_reg_write(ex_m_reg_write), // Reg write signal from EX stage
+        .i_ex_m_isJal(ex_m_isJal), // isJal signal from EX stage
+        .i_ex_m_pc_plus_8(ex_m_pc_plus_8), // PC + 8 from EX stage
         .i_ex_m_bhw_type(ex_m_bhw_type), // BHW type signal from EX stage
         .i_ex_m_halt(ex_m_halt), // Halt signal from EX stage
 
@@ -323,6 +360,8 @@ module PIPELINE (
         .o_ex_m_mem_write(m_mem_write), // Output mem write signal for MEM stage
         .o_ex_m_mem_to_reg(m_mem_to_reg), // Output mem to reg signal
         .o_ex_m_reg_write(m_reg_write), // Output reg write signal for MEM stage
+        .o_ex_m_isJal(m_isJal), // Output isJal signal for MEM stage
+        .o_ex_m_pc_plus_8(m_pc_plus_8), // Output PC + 8 for MEM stage
         .o_ex_m_bhw_type(m_bhw_type), // Output bhw type signal for MEM stage
         .o_ex_m_halt(m_halt) // Output halt signal for MEM stage
     );
@@ -337,6 +376,8 @@ module PIPELINE (
         .i_m_mem_write(m_mem_write),
         .i_m_mem_to_reg(m_mem_to_reg),
         .i_m_reg_write(m_reg_write),
+        .i_m_isJal(m_isJal),
+        .i_m_pc_plus_8(m_pc_plus_8), // PC + 8 from EX stage
         .i_m_bhw_type(m_bhw_type),
         .i_du_mem_addr(i_du_mem_addr), // Address for debug unit
         .i_m_halt(m_halt),
@@ -348,6 +389,8 @@ module PIPELINE (
         .o_m_wb_mem_to_reg(m_wb_mem_to_reg),
         .o_m_wb_reg_write(m_wb_reg_write),
         .o_du_mem_data(mem_data_wire), // Data read from memory for debug unit
+        .o_m_wb_isJal(m_wb_isJal),           // JAL signal for debug unit
+        .o_m_wb_pc_plus_8(m_wb_pc_plus_8), // PC + 8 for WB stage
         .o_m_wb_halt(m_wb_halt)          // Halt signal for WB stage
     );
 
@@ -360,6 +403,8 @@ module PIPELINE (
         .i_m_alu_result(m_wb_alu_result),
         .i_m_mem_to_reg(m_wb_mem_to_reg),
         .i_m_reg_write(m_wb_reg_write),
+        .i_m_isJal(m_wb_isJal),
+        .i_m_pc_plus_8(m_wb_pc_plus_8),
         .i_m_halt(m_wb_halt),
 
         .o_wb_data(wb_data),
@@ -367,6 +412,8 @@ module PIPELINE (
         .o_wb_mem_to_reg(wb_mem_to_reg),
         .o_wb_reg_write(wb_reg_write),
         .o_wb_alu_result(wb_alu_result),
+        .o_wb_isJal(wb_isJal),
+        .o_wb_pc_plus_8(wb_pc_plus_8),
         .o_wb_halt(wb_halt)
     );
 
@@ -374,7 +421,9 @@ module PIPELINE (
         .i_wb_data(wb_data),
         .i_wb_mem_to_reg(wb_mem_to_reg),
         .i_wb_alu_result(wb_alu_result),
+        .i_wb_pc_plus_8(wb_pc_plus_8), // PC + 4 from IF stage
         .i_wb_halt(wb_halt),
+        .i_wb_isJal(wb_isJal),
 
         .o_wb_write_data(wb_write_data),
         .o_wb_halt(end_program)

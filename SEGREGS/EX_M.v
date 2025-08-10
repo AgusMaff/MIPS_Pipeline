@@ -11,6 +11,8 @@ module EX_M (
     input wire        i_ex_m_mem_write,           // Señal de escritura de memoria
     input wire        i_ex_m_mem_to_reg,          // Señal de escritura de registro
     input wire        i_ex_m_reg_write,           // Señal de escritura de registro
+    input wire        i_ex_m_isJal,               // Señal de escritura de registro para instrucciones JAL
+    input wire [31:0] i_ex_m_pc_plus_8,           // PC + 8 para la etapa EX/MEM
     input wire [2:0]  i_ex_m_bhw_type,          // Tipo de instrucción (Byte, Halfword, Word)
     input wire        i_ex_m_halt,              // Señal de parada de la etapa EX/MEM
 
@@ -21,6 +23,8 @@ module EX_M (
     output reg        o_ex_m_mem_write,           // Señal de escritura de memoria
     output reg        o_ex_m_mem_to_reg,          // Señal de escritura de registro
     output reg        o_ex_m_reg_write,            // Señal de escritura de registro
+    output reg        o_ex_m_isJal,               // Señal de escritura de registro para instrucciones JAL
+    output reg [31:0] o_ex_m_pc_plus_8,          // PC + 8 para la etapa EX/MEM
     output reg [2:0]  o_ex_m_bhw_type,             // Tipo de instrucción (Byte, Halfword, Word)
     output reg        o_ex_m_halt                   // Señal de parada de la etapa EX/MEM
 );
@@ -36,6 +40,8 @@ module EX_M (
             o_ex_m_reg_write <= 1'b0;
             o_ex_m_bhw_type <= 3'b0;
             o_ex_m_halt <= 1'b0;
+            o_ex_m_isJal <= 1'b0;
+            o_ex_m_pc_plus_8 <= 32'b0;
         end else if (i_clk_en) begin
             o_ex_m_alu_result <= i_ex_alu_result;
             o_ex_m_write_data <= i_ex_write_data;
@@ -46,6 +52,8 @@ module EX_M (
             o_ex_m_reg_write <= i_ex_m_reg_write;
             o_ex_m_bhw_type <= i_ex_m_bhw_type;
             o_ex_m_halt <= i_ex_m_halt;
+            o_ex_m_isJal <= i_ex_m_isJal;
+            o_ex_m_pc_plus_8 <= i_ex_m_pc_plus_8;
         end
     end
 
