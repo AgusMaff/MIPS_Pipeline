@@ -16,10 +16,12 @@ module ID (
     input  wire        i_id_ex_reg_write,
     input  wire        i_id_ex_mem_read,
     input  wire [31:0] i_ex_m_alu_result,
+    input  wire [31:0] i_m_alu_result,
     input  wire [4:0]  i_ex_m_rd,
     input  wire [4:0]  i_m_rd,
     input  wire [4:0]  i_id_ex_rt,
     input  wire        i_ex_m_reg_write,
+    input  wire        i_m_reg_write,
     input  wire        i_ex_m_memtoreg,
     input  wire [4:0]  i_du_reg_addr,
 
@@ -55,8 +57,8 @@ module ID (
     wire [31:0] data_2;
     wire        branch;
     wire        jumpSel;
-    wire        forward_a;
-    wire        forward_b;
+    wire [1:0]  forward_a;
+    wire [1:0]  forward_b;
     wire [31:0] shifted_extended_beq_offset;
     wire        comparator_result;
     wire        is_beq_signal;
@@ -66,6 +68,7 @@ module ID (
     assign o_rs = i_rs;
     assign o_rt = i_rt;
     assign o_rd = i_rd;
+    assign o_jumpSel = jumpSel;
 
     REGMEM regmem (
         .clk(i_clk),
@@ -96,7 +99,7 @@ module ID (
         .jump(o_jump),
         .isJal(o_isJal),
         .jalSel(o_jalSel),
-        .jumpSel(o_jumpSel),
+        .jumpSel(jumpSel),
         .bhw_type(o_bhw_type),
         .halt(o_halt)
     );
@@ -119,21 +122,25 @@ module ID (
         .if_id_rs(i_rs),
         .if_id_rt(i_rt),
         .ex_m_rd(i_ex_m_rd),
+        .m_rd(i_m_rd),
         .ex_m_reg_write(i_ex_m_reg_write),
+        .m_reg_write(i_m_reg_write),
         .forward_a(forward_a),
         .forward_b(forward_b)
     );
 
-    MUX2TO1 mux_forward_a (
+    MUX3TO1 mux_forward_a (
         .input_1(data_1),
         .input_2(i_ex_m_alu_result),
+        .input_3(i_m_alu_result),
         .selection_bit(forward_a),
         .mux(o_data_1)
     );
 
-    MUX2TO1 mux_forward_b (
+    MUX3TO1 mux_forward_b (
         .input_1(data_2),
         .input_2(i_ex_m_alu_result),
+        .input_3(i_m_alu_result),
         .selection_bit(forward_b),
         .mux(o_data_2)
     );

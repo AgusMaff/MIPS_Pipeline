@@ -19,6 +19,8 @@ module HAZARD_UNIT
 reg reg_flush;
 reg reg_stall;
 always @(*) begin
+    reg_flush = 1'b0;
+    reg_stall = 1'b0;
     //read load data hazard
     if((id_ex_mem_read) && ((if_id_rs == id_ex_rt) || (if_id_rt == id_ex_rt)))
     begin
@@ -29,15 +31,9 @@ always @(*) begin
         begin
             reg_flush = 1'b1;
         end
-    else begin
-        reg_flush = 1'b0;
-        reg_stall = 1'b0;
     end
-    
-end
 
 assign flush_idex = reg_flush;
 assign stall      = reg_stall;
-
-    
+  
 endmodule

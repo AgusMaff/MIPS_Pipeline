@@ -3,29 +3,37 @@
 module FORWARDING_UNIT_ID(
     input  wire [4:0] if_id_rs,          // Source register 1 from ID stage
     input  wire [4:0] if_id_rt,          // Source register 2 from ID stage
-    input  wire [4:0] ex_m_rd,        // Destination register from EX stage
-    input  wire       ex_m_reg_write, // Register write signal from EX stage
-    output wire       forward_a,      // Forwarding signal for source A
-    output wire       forward_b       // Forwarding signal for source B
+    input  wire [4:0] ex_m_rd,           // Destination register from EX stage
+    input  wire [4:0] m_rd,              // Destination register from MEM stage
+    input  wire       ex_m_reg_write,    // Register write signal from EX stage
+    input  wire       m_reg_write,       // Register write signal from MEM stage
+    output wire [1:0] forward_a,         // Forwarding signal for source A
+    output wire [1:0] forward_b          // Forwarding signal for source B
 );
-    reg a;
-    reg b;
+    reg [1:0] a;
+    reg [1:0] b;
 
-    always @(*) 
-    begin
-        //fordward for rs en ID from mem
+    always @(*) begin
+        // Forward A (RS) con prioridad correcta
         if ((if_id_rs == ex_m_rd) && ex_m_reg_write && (ex_m_rd != 5'b00000)) begin 
-            a = 1'b1;
+            a = 2'b01;  // Forward desde EX/MEM (más reciente)
+        end
+        else if ((if_id_rs == m_rd) && m_reg_write && (m_rd != 5'b00000)) begin 
+            a = 2'b10;  // Forward desde MEM/WB (menos reciente)
         end
         else begin
-            a = 1'b0;
+            a = 2'b00;  // No forward (usar dato de registro)
         end
-        //fordward for rt en ID from mem
+
+        // Forward B (RT) con prioridad correcta
         if ((if_id_rt == ex_m_rd) && ex_m_reg_write && (ex_m_rd != 5'b00000)) begin
-            b = 1'b1;
+            b = 2'b01;  // Forward desde EX/MEM (más reciente)
+        end
+        else if ((if_id_rt == m_rd) && m_reg_write && (m_rd != 5'b00000)) begin
+            b = 2'b10;  // Forward desde MEM/WB (menos reciente)
         end
         else begin
-            b = 1'b0;
+            b = 2'b00;  // No forward (usar dato de registro)
         end
     end
 

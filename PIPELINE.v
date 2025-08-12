@@ -100,7 +100,7 @@ module PIPELINE (
     wire [31:0] id_ex_pc_plus_8; // PC + 8 para la etapa ID/EX
     wire [2:0] id_ex_bhw_type; // Tipo de instrucción (Byte, Halfword, Word)
     wire id_ex_halt; // Señal de parada
-    
+
     //Etapa EX
     wire [31:0] ex_data_1; // Dato 1 de la etapa ID/EX
     wire [31:0] ex_data_2; // Dato 2 de la etapa ID/EX
@@ -224,11 +224,13 @@ module PIPELINE (
         .i_function_code(id_function_code), // Function code from IF_ID stage (not connected)
         .i_id_ex_reg_write(ex_reg_write), // Reg write signal from EX stage (not connected)
         .i_id_ex_mem_read(ex_read), // Mem read signal from EX stage (not connected)
-        .i_ex_m_alu_result(m_alu_result), // ALU result from EX/MEM stage (not connected)
+        .i_ex_m_alu_result(ex_m_alu_result), // ALU result from EX/MEM stage (not connected)
+        .i_m_alu_result(m_alu_result), // ALU result from MEM stage (not connected)
         .i_ex_m_rd(ex_m_rd), // rd from EX/MEM stage (not connected)
         .i_m_rd(m_rd), // rd from MEM stage (not connected)
         .i_id_ex_rt(ex_rt), // rt from ID/EX stage (not connected)
-        .i_ex_m_reg_write(m_reg_write), // Reg write signal from EX/MEM stage (not connected)
+        .i_ex_m_reg_write(ex_m_reg_write), // Reg write signal from EX/MEM stage (not connected)
+        .i_m_reg_write(m_reg_write), // Reg write signal from MEM/WB stage (not connected)
         .i_ex_m_memtoreg(m_mem_to_reg), // Mem to reg signal from EX/MEM stage (not connected)
         .i_du_reg_addr(i_du_reg_addr), // Register address for debug unit
 
@@ -283,6 +285,8 @@ module PIPELINE (
         .id_ex_pc_plus_8(id_ex_pc_plus_8), // PC + 8 for ID/EX stage (not connected)
         .id_bhw_type(id_ex_bhw_type), // BHW type signal from ID stage (not connected)
         .id_ex_halt(id_ex_halt), // Halt signal from ID stage (not connected)
+        .id_flush(flush_idex), // Flush signal for ID/EX stage
+        .id_stall(stall), // Stall signal for ID/EX stage
 
         .ex_dato_1(ex_data_1), // Output data 1 for EX stage (not connected)
         .ex_dato_2(ex_data_2), // Output data 2 for EX stage (not connected)
@@ -320,12 +324,12 @@ module PIPELINE (
         .i_id_ex_mem_write(ex_write), // Mem write signal from ID stage (not connected)
         .i_id_ex_mem_to_reg(ex_to_reg), // Mem to reg signal from ID stage (not connected)
         .i_id_ex_reg_write(ex_reg_write), // Reg write signal from ID stage (not connected)
-        .i_m_wb_data_write(wb_write_data), // Data to write in register file (not connected)
+        .i_m_wb_data_write(m_wb_read_data), // Data to write in register file (not connected)
         .i_ex_m_alu_result(m_alu_result), // ALU result from EX stage (not connected)
         .i_ex_m_reg_write(m_reg_write), // Reg write signal from EX stage (not connected)
         .i_ex_m_rd(m_rd), // rd from EX stage (not connected)
-        .i_m_wb_reg_write(wb_reg_write), // Reg write signal from MEM stage (not connected)
-        .i_m_wb_rd(wb_rd), // Write back rd from MEM stage (not connected)
+        .i_m_wb_reg_write(m_wb_reg_write), // Reg write signal from MEM stage (not connected)
+        .i_m_wb_rd(m_wb_rd), // Write back rd from MEM stage (not connected)
         .i_id_ex_isJal(ex_isJal), // JAL signal from EX stage (not connected)
         .i_id_ex_jalSel(ex_jalSel), // JALR signal from EX stage (not connected)
         .i_id_ex_pc_plus_8(ex_pc_plus_8), // PC + 8 for EX stage (not connected)

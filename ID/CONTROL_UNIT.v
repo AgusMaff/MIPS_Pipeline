@@ -161,6 +161,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b001; // Tipo de instrucción de carga (Palabra completa)
                             halt       = 1'b0; // No es HALT
                         end
@@ -177,6 +178,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b010; // Tipo de instrucción de carga (Media palabra)
                             halt       = 1'b0; // No es HALT
                         end
@@ -193,6 +195,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b100; // Tipo de instrucción de carga (Byte)
                             halt       = 1'b0; // No es HALT
                         end
@@ -209,6 +212,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b101; // Tipo de instrucción de carga (Palabra completa)
                             halt       = 1'b0; // No es HALT
                         end
@@ -225,6 +229,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b110; // Tipo de instrucción de carga (Byte)
                             halt       = 1'b0; // No es HALT
                         end
@@ -241,6 +246,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b111; // Tipo de instrucción de carga (Media palabra)
                             halt       = 1'b0; // No es HALT
                         end
@@ -262,6 +268,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b001; // Tipo de instrucción de almacenamiento (Palabra completa)
                             halt       = 1'b0; // No es HALT
                         end
@@ -278,6 +285,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b010; // Tipo de instrucción de almacenamiento (Media palabra)
                             halt       = 1'b0; // No es HALT
                         end
@@ -294,6 +302,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b100; // Tipo de instrucción de almacenamiento (Byte)
                             halt       = 1'b0; // No es HALT
                         end
@@ -315,6 +324,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b000; // Tipo de instrucción I
                             halt       = 1'b0; // No es HALT
                         end
@@ -331,6 +341,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b000; // Tipo de instrucción I
                             halt       = 1'b0; // No es HALT
                         end
@@ -347,6 +358,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b000; // Tipo de instrucción I
                             halt       = 1'b0; // No es HALT
                         end
@@ -363,6 +375,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b000; // Tipo de instrucción I
                             halt       = 1'b0; // No es HALT
                         end
@@ -379,6 +392,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b000; // Tipo de instrucción I
                             halt       = 1'b0; // No es HALT
                         end
@@ -395,6 +409,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b000; // Tipo de instrucción I
                             halt       = 1'b0; // No es HALT
                         end
@@ -411,6 +426,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b000; // Tipo de instrucción I
                             halt       = 1'b0; // No es HALT
                         end
@@ -427,6 +443,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b000; // Tipo de instrucción I
                             halt       = 1'b0; // No es HALT
                         end
@@ -448,6 +465,7 @@ module CONTROL_UNIT (
                             jump       = 1'b0;
                             isJal      = 1'b0; // No es JAL
                             jalSel     = 1'b0; // No es jalr
+                            jumpSel    = 1'b0; // No es JR
                             bhw_type   = 3'b000; // Tipo de instrucción R
                             halt       = 1'b1; // Señal de parada (HALT)
                         end
@@ -468,6 +486,7 @@ module CONTROL_UNIT (
                     jump       = 1'b0;
                     isJal      = 1'b0; // No es JAL
                     jalSel     = 1'b0; // No es jalr
+                    jumpSel    = 1'b0; // No es JR
                     bhw_type   = 3'b000; // Tipo de instrucción R
                     halt       = 1'b0; // No es HALT
                 end
@@ -485,6 +504,7 @@ module CONTROL_UNIT (
             jump       = 1'b0;
             isJal      = 1'b0; // No es JAL
             jalSel     = 1'b0; // No es jalr
+            jumpSel    = 1'b0; // No es JR
             bhw_type   = 3'b000; // Tipo de instrucción R
             halt       = 1'b0; // No es HALT
         end

@@ -50,17 +50,16 @@ module IF(
         .clk(i_clk),
         .clk_en(i_clk_en), // Habilitar señal de reloj
         .reset(i_reset),
-        .next_pc(next_pc_final[7:0]), // Solo se usan los 8 bits menos significativos
+        .next_pc(next_pc_final), // Solo se usan los 8 bits menos significativos
         .write_en(i_write_en),      // No se escribe en la memoria de instrucciones
         .stall(i_stall),
-        .pc(pc_to_instmem[7:0])
+        .pc(pc_to_instmem)
     );
 
     INSMEM instmem (
         .clk(i_clk),
         .reset(i_reset),
         .write_en(i_write_en),      // No se escribe en la memoria de instrucciones
-        .read_en(i_read_en),        // Siempre se lee (luego tengo que diseñar la debug unit que controla la lectura y escritura de la memoria de instrucciones)
         .data(i_data),              // No se usa en lectura
         .addr(pc_to_instmem[7:0]),       // Dirección de la memoria de instrucciones
         .addr_wr(i_addr_wr[7:0]),        // Dirección de escritura (no se usa en lectura)
@@ -71,7 +70,7 @@ module IF(
         .data_a(pc_to_instmem),     // PC actual
         .data_b(32'd4),             // Valor a sumar (4 en 32 bits)
         .operation(6'b100001),        // Operación de suma
-        .result(o_pc_plus_4)        // Resultado de la suma (PC + 4)
+        .result(o_pc_plus_4)       // Resultado de la suma (PC + 4)
     );
 
     SHFT2L shft2l (

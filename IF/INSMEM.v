@@ -4,7 +4,6 @@ module INSMEM(
     input wire         clk,         // Reloj
     input wire         reset,       // Reset
     input wire         write_en,    // Señal para habilitar escritura
-    input wire         read_en,     // Señal para habilitar lectura
     input wire  [31:0] data,        // Datos a escribir
     input wire  [7:0] addr,        // Dirección de lectura
     input  wire [7:0] addr_wr,     // Direccion de escritura (no se usa en lectura)

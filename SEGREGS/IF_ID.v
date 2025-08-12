@@ -29,7 +29,7 @@ module IF_ID (
             id_opcode <= 6'b0;
             id_function_code <= 6'b0;
             id_instruction <= 32'b0; // Reset instruction
-        end else if (flush) begin
+        end else if (flush && !stall) begin
             id_pc_plus_4 <= 32'b0;
             id_rs <= 5'b0;
             id_rt <= 5'b0;
