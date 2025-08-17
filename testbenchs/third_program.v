@@ -1,62 +1,49 @@
 `timescale 1ns / 1ps
 
-module PIPELINE (
-    input wire i_clk,
-    input wire i_clk_en, // Enable clock signal
-    input wire i_reset,
-    input wire [31:0] i_du_data,
-    input wire [31:0] i_du_inst_addr_wr,
-    input wire [7:0] i_du_mem_addr,
-    input wire [4:0] i_du_reg_addr,
-    input wire i_du_write_en,
-    input wire i_du_read_en,
+module third_program();
 
-    output wire o_du_halt, // Señal de parada (HALT)
+    reg i_clk;
+    reg i_clk_en; // Enable clock signal
+    reg i_reset;
+    reg [31:0] i_du_data;
+    reg [31:0] i_du_inst_addr_wr;
+    reg [7:0] i_du_mem_addr;
+    reg [4:0] i_du_reg_addr;
+    reg i_du_write_en;
+    reg i_du_read_en;
+    wire o_du_halt; // Señal de parada (HALT)
+    wire [31:0] o_du_if_id_pc_plus_4;
+    wire [31:0] o_du_if_id_instruction;
+    wire [31:0] o_du_id_ex_data_1;
+    wire [31:0] o_du_id_ex_data_2;
+    wire [4:0] o_du_id_ex_rs;
+    wire [4:0] o_du_id_ex_rt;
+    wire [4:0] o_du_id_ex_rd;
+    wire [5:0] o_du_id_ex_function_code;
+    wire [31:0] o_du_id_ex_extended_beq_offset;
+    wire o_du_id_ex_reg_dest;
+    wire o_du_id_ex_alu_src;
+    wire [3:0] o_du_id_ex_alu_op;
+    wire o_du_id_ex_mem_read;
+    wire o_du_id_ex_mem_write;
+    wire o_du_id_ex_mem_to_reg;
+    wire o_du_id_ex_reg_write;
+    wire [2:0] o_du_id_ex_bhw_type;
+    wire [4:0] o_du_ex_m_rd;
+    wire [31:0] o_du_ex_m_alu_result;
+    wire [31:0] o_du_ex_m_write_data;
+    wire o_du_ex_m_mem_read;
+    wire o_du_ex_m_mem_write;
+    wire o_du_ex_m_mem_to_reg;
+    wire o_du_ex_m_reg_write;
+    wire [2:0] o_du_ex_m_bhw_type;
+    wire [31:0] o_du_m_wb_read_data;
+    wire [31:0] o_du_m_wb_alu_result;
+    wire [4:0] o_du_m_wb_rd;
+    wire o_du_m_wb_reg_write;
+    wire [31:0] o_du_regs_mem_data;
+    wire [31:0] o_du_mem_data;
 
-    output wire [31:0] o_du_if_id_pc_plus_4,
-    output wire [31:0] o_du_if_id_instruction,
-
-    output wire [31:0] o_du_id_ex_data_1,
-    output wire [31:0] o_du_id_ex_data_2,
-    output wire [4:0] o_du_id_ex_rs,
-    output wire [4:0] o_du_id_ex_rt,
-    output wire [4:0] o_du_id_ex_rd,
-    output wire [5:0] o_du_id_ex_function_code,
-    output wire [31:0] o_du_id_ex_extended_beq_offset,
-    output wire o_du_id_ex_reg_dest,
-    output wire o_du_id_ex_alu_src,
-    output wire [3:0] o_du_id_ex_alu_op,
-    output wire o_du_id_ex_mem_read,
-    output wire o_du_id_ex_mem_write,
-    output wire o_du_id_ex_mem_to_reg,
-    output wire o_du_id_ex_reg_write,
-    output wire [2:0] o_du_id_ex_bhw_type,
-    output wire o_du_id_ex_isJal,
-    output wire o_du_id_ex_jalSel,
-    output wire [31:0] o_du_id_ex_pc_plus_8,
-
-    output wire [4:0] o_du_ex_m_rd,
-    output wire [31:0] o_du_ex_m_alu_result,
-    output wire [31:0] o_du_ex_m_write_data,
-    output wire o_du_ex_m_mem_read,
-    output wire o_du_ex_m_mem_write,
-    output wire o_du_ex_m_mem_to_reg,
-    output wire o_du_ex_m_reg_write,
-    output wire [2:0] o_du_ex_m_bhw_type,
-    output wire o_du_ex_m_isJal,
-    output wire [31:0] o_du_ex_m_pc_plus_8,
-
-    output wire [31:0] o_du_m_wb_read_data,
-    output wire [31:0] o_du_m_wb_alu_result,
-    output wire [4:0] o_du_m_wb_rd,
-    output wire o_du_m_wb_reg_write,
-    output wire o_du_m_wb_mem_to_reg,
-    output wire o_du_m_wb_isJal,
-    output wire [31:0] o_du_m_wb_pc_plus_8,
-
-    output wire [31:0] o_du_regs_mem_data,
-    output wire [31:0] o_du_mem_data
-);
     //Señales de control
     wire pcsrc; // Señal de selección de PC
     wire jump; // Señal de salto
@@ -452,52 +439,124 @@ module PIPELINE (
             halt_latched <= 1'b1;
     end
 
-    // DEBUG UNIT
-    assign o_du_regs_mem_data = reg_data_wire; // Datos de los registros para el debug unit
+    initial i_clk = 0;
+    always #5 i_clk = ~i_clk;
 
-    assign o_du_mem_data = mem_data_wire; // Datos de la memoria para el debug unit
+    initial begin 
+        i_reset = 1;
+        i_clk_en = 0; // Enable clock signal
+        i_du_data = 32'h00000000; // No data to write in debug
+        i_du_inst_addr_wr = 32'h00000000; // No address to write in debug
+        i_du_mem_addr = 8'h00; // No address to write in debug memory
+        i_du_reg_addr = 5'b00000; // No register address to write in debug
+        i_du_write_en = 0; // No write enable for debug unit
+        i_du_read_en = 0; // Always read from debug unit
+        #10 i_reset = 0; // Release reset after 10 time units
 
-    assign o_du_if_id_pc_plus_4 = if_id_pc_plus_4; // Datos de la etapa IF/ID
-    assign o_du_if_id_instruction = if_id_instruction;
+        i_du_data = 32'b001001_00001_00010_0000000000000001; // ADDIU instruction
+        i_du_inst_addr_wr = 32'd0; // Address to write instruction
+        i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
+        i_du_reg_addr = 5'd8;
+        i_du_write_en = 1; // Enable write for debug unit
+        i_du_read_en = 0; // Enable read for debug unit
+        #10 i_du_write_en = 0; // Disable write for debug unit
 
-    assign o_du_id_ex_data_1 = id_ex_data_1;
-    assign o_du_id_ex_data_2 = id_ex_data_2;
-    assign o_du_id_ex_rs = id_ex_rs;
-    assign o_du_id_ex_rt = id_ex_rt;
-    assign o_du_id_ex_rd = id_ex_rd;
-    assign o_du_id_ex_extended_beq_offset = id_ex_extended_beq_offset;
-    assign o_du_id_ex_function_code = id_ex_function_code;
-    assign o_du_id_ex_reg_dest = id_ex_reg_dest;
-    assign o_du_id_ex_alu_src = id_ex_alu_src;
-    assign o_du_id_ex_alu_op = id_ex_alu_op;
-    assign o_du_id_ex_mem_read = id_ex_mem_read;
-    assign o_du_id_ex_mem_write = id_ex_mem_write;
-    assign o_du_id_ex_mem_to_reg = id_ex_mem_to_reg;
-    assign o_du_id_ex_reg_write = id_ex_reg_write;
-    assign o_du_id_ex_bhw_type = id_ex_bhw_type;
-    assign o_du_id_ex_isJal = id_ex_isJal;
-    assign o_du_id_ex_jalSel = id_ex_jalSel;
-    assign o_du_id_ex_pc_plus_8 = id_ex_pc_plus_8;
+        i_du_data = 32'b001001_00001_00011_0000000000000001; // ADDIU instruction
+        i_du_inst_addr_wr = 32'd4; // Address to write instruction
+        i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
+        i_du_reg_addr = 5'd8;
+        i_du_write_en = 1; // Enable write for debug unit
+        i_du_read_en = 0; // Enable read for debug unit
+        #10 i_du_write_en = 0; // Disable write for debug unit
 
-    assign o_du_ex_m_alu_result = ex_m_alu_result;
-    assign o_du_ex_m_write_data = ex_m_write_data;
-    assign o_du_ex_m_rd = ex_m_rd;
-    assign o_du_ex_m_mem_read = ex_m_mem_read;
-    assign o_du_ex_m_mem_write = ex_m_mem_write;
-    assign o_du_ex_m_mem_to_reg = ex_m_mem_to_reg;
-    assign o_du_ex_m_reg_write = ex_m_reg_write;
-    assign o_du_ex_m_bhw_type = ex_m_bhw_type;
-    assign o_du_ex_m_isJal = ex_m_isJal;
-    assign o_du_ex_m_pc_plus_8 = ex_m_pc_plus_8;
+        i_du_data = 32'b000011_00000000000000000000000111; // JAL instruction
+        i_du_inst_addr_wr = 32'd8; // Address to write instruction
+        i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
+        i_du_reg_addr = 5'd0;
+        i_du_write_en = 1; // Enable write for debug unit
+        i_du_read_en = 0; // Enable read for debug unit
+        #10 i_du_write_en = 0; // Disable write for debug unit
 
-    assign o_du_m_wb_read_data = m_wb_read_data;
-    assign o_du_m_wb_rd = m_wb_rd;
-    assign o_du_m_wb_alu_result = m_wb_alu_result;
-    assign o_du_m_wb_mem_to_reg = m_wb_mem_to_reg;
-    assign o_du_m_wb_reg_write = m_wb_reg_write;
-    assign o_du_m_wb_isJal = m_wb_isJal;
-    assign o_du_m_wb_pc_plus_8 = m_wb_pc_plus_8;
+        i_du_data = 32'b001001_00001_00000_0000000000000000; // ADDIU instruction
+        i_du_inst_addr_wr = 32'd12; // Address to write instruction
+        i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
+        i_du_reg_addr = 5'd4;
+        i_du_write_en = 1; // Enable write for debug unit
+        i_du_read_en = 0; // Enable read for debug unit
+        #10 i_du_write_en = 0; // Disable write for debug unit
 
-    assign o_du_halt = halt_latched; // Señal de parada (HALT)
+        i_du_data = 32'b001001_00001_00000_0000000000000000; // ADDIU instruction
+        i_du_inst_addr_wr = 32'd16; // Address to write instruction
+        i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
+        i_du_reg_addr = 5'd4;
+        i_du_write_en = 1; // Enable write for debug unit
+        i_du_read_en = 0; // Enable read for debug unit
+        #10 i_du_write_en = 0; // Disable write for debug unit
+
+        i_du_data = 32'b001001_00001_00000_0000000000000000; // ADDIU instruction
+        i_du_inst_addr_wr = 32'd20; // Address to write instruction
+        i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
+        i_du_reg_addr = 5'd4;
+        i_du_write_en = 1; // Enable write for debug unit
+        i_du_read_en = 0; // Enable read for debug unit
+        #10 i_du_write_en = 0; // Disable write for debug unit
+
+        i_du_data = 32'b001001_00001_00000_0000000000000000; // ADDIU instruction
+        i_du_inst_addr_wr = 32'd24; // Address to write instruction
+        i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
+        i_du_reg_addr = 5'd4;
+        i_du_write_en = 1; // Enable write for debug unit
+        i_du_read_en = 0; // Enable read for debug unit
+        #10 i_du_write_en = 0; // Disable write for debug unit
+        
+        i_du_data = 32'b001001_00010_00010_0000000000000001; // ADDIU instruction
+        i_du_inst_addr_wr = 32'd28; // Address to write instruction
+        i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
+        i_du_reg_addr = 5'd8;
+        i_du_write_en = 1; // Enable write for debug unit
+        i_du_read_en = 0; // Enable read for debug unit
+        #10 i_du_write_en = 0; // Disable write for debug unit
+
+        i_du_data = 32'b001001_00011_00011_0000000000000001; // ADDIU instruction
+        i_du_inst_addr_wr = 32'd32; // Address to write instruction
+        i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
+        i_du_reg_addr = 5'd8;
+        i_du_write_en = 1; // Enable write for debug unit
+        i_du_read_en = 0; // Enable read for debug unit
+        #10 i_du_write_en = 0; // Disable write for debug unit
+
+        i_du_data = 32'b000110_11111_000000000000001000001; // JR instruction
+        i_du_inst_addr_wr = 32'd36; // Address to write instruction
+        i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
+        i_du_reg_addr = 5'd8;
+        i_du_write_en = 1; // Enable write for debug unit
+        i_du_read_en = 0; // Enable read for debug unit
+        #10 i_du_write_en = 0; // Disable write for debug unit
+
+        i_du_data = 32'b001001_00001_00000_0000000000000000; // ADDIU instruction
+        i_du_inst_addr_wr = 32'd40; // Address to write instruction
+        i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
+        i_du_reg_addr = 5'd4;
+        i_du_write_en = 1; // Enable write for debug unit
+        i_du_read_en = 0; // Enable read for debug unit
+        #10 i_du_write_en = 0; // Disable write for debug unit
+
+        i_du_data = 32'hFC000000; // ADDIU instruction
+        i_du_inst_addr_wr = 32'd44; // Address to write instruction
+        i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
+        i_du_reg_addr = 5'd4;
+        i_du_write_en = 1; // Enable write for debug unit
+        i_du_read_en = 0; // Enable read for debug unit
+        #10 i_du_write_en = 0; // Disable write for debug unit
+
+        i_du_read_en = 1; // Enable read for debug unit
+        i_clk_en = 1; // Enable clock signal
+        #20000; // Wait for some time to observe the behavior
+        i_clk_en = 0; // Disable clock signal
+        i_du_read_en = 0; // Disable read for debug unit
+        #100; // Wait for some time to observe the behavior
+        $finish; // End simulation
+    end
+
 
 endmodule

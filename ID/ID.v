@@ -17,12 +17,14 @@ module ID (
     input  wire        i_id_ex_mem_read,
     input  wire [31:0] i_ex_m_alu_result,
     input  wire [31:0] i_m_alu_result,
-    input  wire [4:0]  i_ex_m_rd,
+    input  wire [31:0] i_mem_data_readed,
+    input  wire        i_m_mem_read,
+    input  wire [4:0]  i_ex_rd,
     input  wire [4:0]  i_m_rd,
     input  wire [4:0]  i_id_ex_rt,
-    input  wire        i_ex_m_reg_write,
+    input  wire        i_ex_reg_write,
     input  wire        i_m_reg_write,
-    input  wire        i_ex_m_memtoreg,
+    input  wire        i_m_memtoreg,
     input  wire [4:0]  i_du_reg_addr,
 
     output wire        o_pc_src,
@@ -109,11 +111,11 @@ module ID (
         .if_id_rs(i_rs),
         .if_id_rt(i_rt),
         .id_ex_rt(i_id_ex_rt),
-        .ex_rd(i_ex_m_rd),
+        .ex_rd(i_ex_rd),
         .m_rd(i_m_rd),
         .id_ex_mem_read(i_id_ex_mem_read),
-        .id_ex_regwrite(i_id_ex_reg_write),
-        .ex_m_memtoreg(i_ex_m_memtoreg),
+        .ex_regwrite(i_ex_reg_write),
+        .m_memtoreg(i_m_memtoreg),
         .flush_idex(o_flush_idex),
         .stall(o_stall)
     );
@@ -125,22 +127,25 @@ module ID (
         .m_rd(i_m_rd),
         .ex_m_reg_write(i_ex_m_reg_write),
         .m_reg_write(i_m_reg_write),
+        .m_mem_read(i_m_mem_read),
         .forward_a(forward_a),
         .forward_b(forward_b)
     );
 
-    MUX3TO1 mux_forward_a (
+    MUX4TO1 mux_forward_a (
         .input_1(data_1),
         .input_2(i_ex_m_alu_result),
         .input_3(i_m_alu_result),
+        .input_4(i_mem_data_readed),  // Default case
         .selection_bit(forward_a),
         .mux(o_data_1)
     );
 
-    MUX3TO1 mux_forward_b (
+    MUX4TO1 mux_forward_b (
         .input_1(data_2),
         .input_2(i_ex_m_alu_result),
         .input_3(i_m_alu_result),
+        .input_4(i_mem_data_readed),  // Default case
         .selection_bit(forward_b),
         .mux(o_data_2)
     );

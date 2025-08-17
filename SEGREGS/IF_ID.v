@@ -6,6 +6,8 @@ module IF_ID (
     input  wire        reset,
     input  wire [31:0] if_pc_plus_4,
     input  wire [31:0] if_instruction,
+    input  wire        branch_taken,
+    input  wire        jump,          // Signal for jump or JAL instruction
     input  wire        stall,
     input  wire        flush,
 
@@ -20,7 +22,7 @@ module IF_ID (
 );
 
     always @(posedge clk or posedge reset) begin
-        if (reset) begin
+        if (reset || branch_taken || jump) begin
             id_pc_plus_4 <= 32'b0;
             id_rs <= 5'b0;
             id_rt <= 5'b0;

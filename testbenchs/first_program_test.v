@@ -183,6 +183,8 @@ module first_program();
         .reset(i_reset),
         .if_pc_plus_4(if_id_pc_plus_4), // PC + 4 from IF stage (not connected)
         .if_instruction(if_id_instruction), // Instruction from IF stage (not connected)
+        .branch_taken(pcsrc), // No branch taken for now
+        .jump(jump), // No jump for now
         .stall(stall | halt_latched), // No stall signal for now
         .flush(flush_idex), // Flush signal for ID/EX stage
 
@@ -213,12 +215,14 @@ module first_program();
         .i_id_ex_mem_read(ex_read), // Mem read signal from EX stage (not connected)
         .i_ex_m_alu_result(ex_m_alu_result), // ALU result from EX/MEM stage (not connected)
         .i_m_alu_result(m_alu_result), // ALU result from MEM stage (not connected)
-        .i_ex_m_rd(ex_m_rd), // rd from EX/MEM stage (not connected)
+        .i_mem_data_readed(m_wb_read_data), // Read data from MEM stage (not connected)
+        .i_m_mem_read(m_mem_read), // Mem read signal from MEM stage (not connected)
+        .i_ex_rd(ex_rd), // rd from EX/MEM stage (not connected)
         .i_m_rd(m_rd), // rd from MEM stage (not connected)
         .i_id_ex_rt(ex_rt), // rt from ID/EX stage (not connected)
-        .i_ex_m_reg_write(ex_m_reg_write), // Reg write signal from EX/MEM stage (not connected)
+        .i_ex_reg_write(ex_reg_write), // Reg write signal from EX/MEM stage (not connected)
         .i_m_reg_write(m_reg_write), // Reg write signal from MEM/WB stage (not connected)
-        .i_ex_m_memtoreg(m_mem_to_reg), // Mem to reg signal from EX/MEM stage (not connected)
+        .i_m_memtoreg(m_mem_to_reg), // Mem to reg signal from EX/MEM stage (not connected)
         .i_du_reg_addr(i_du_reg_addr), // Register address for debug unit
 
         .o_pc_src(pcsrc), // Output pcsrc signal
@@ -248,7 +252,7 @@ module first_program();
         .o_halt(id_ex_halt), // Output halt signal for ID stage (not connected)
         .o_du_reg_data(reg_data_wire)
     );  
-
+    
     ID_EX id_ex_segmentation_register (
         .clk(i_clk),
         .clk_en(i_clk_en), // Enable clock signal
@@ -490,14 +494,6 @@ module first_program();
         #10 i_du_write_en = 0; // Disable write for debug unit
 
         i_du_data = 32'b000000_00011_00010_01000_00000100101; // OR instruction
-        i_du_inst_addr_wr = 32'd16; // Address to write instruction
-        i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
-        i_du_reg_addr = 5'd8;
-        i_du_write_en = 1; // Enable write for debug unit
-        i_du_read_en = 0; // Enable read for debug unit
-        #10 i_du_write_en = 0; // Disable write for debug unit
-
-        i_du_data = 32'b101011_00000_01000_0000000000010000; // SW instruction
         i_du_inst_addr_wr = 32'd20; // Address to write instruction
         i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
         i_du_reg_addr = 5'd8;
@@ -505,7 +501,7 @@ module first_program();
         i_du_read_en = 0; // Enable read for debug unit
         #10 i_du_write_en = 0; // Disable write for debug unit
 
-        i_du_data = 32'b000000_00010_00011_01001_00000101010; // SLT instruction
+        i_du_data = 32'b101011_00000_01000_0000000000010000; // SW instruction
         i_du_inst_addr_wr = 32'd24; // Address to write instruction
         i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
         i_du_reg_addr = 5'd8;
@@ -513,16 +509,32 @@ module first_program();
         i_du_read_en = 0; // Enable read for debug unit
         #10 i_du_write_en = 0; // Disable write for debug unit
 
-        i_du_data = 32'b100011_00000_01010_0000000000010000; // LW instruction
+        i_du_data = 32'b000000_00010_00011_01001_00000101010; // SLT instruction
         i_du_inst_addr_wr = 32'd28; // Address to write instruction
+        i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
+        i_du_reg_addr = 5'd8;
+        i_du_write_en = 1; // Enable write for debug unit
+        i_du_read_en = 0; // Enable read for debug unit
+        #10 i_du_write_en = 0; // Disable write for debug unit
+
+        i_du_data = 32'b100011_00000_01010_0000000000010000; // LW instruction
+        i_du_inst_addr_wr = 32'd32; // Address to write instruction
         i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
         i_du_reg_addr = 5'd8;
         i_du_write_en = 1; // Enable write for debug unit
         i_du_read_en = 0; // Enable read for debug unit
         #10 i_du_write_en = 0; // Disable write for debug unit 
 
+        i_du_data = 32'b000000_00011_01010_01011_00000100001; // ADDU instruction
+        i_du_inst_addr_wr = 32'd36; // Address to write instruction
+        i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
+        i_du_reg_addr = 5'd8;
+        i_du_write_en = 1; // Enable write for debug unit
+        i_du_read_en = 0; // Enable read for debug unit
+        #10 i_du_write_en = 0; // Disable write for debug unit
+
         i_du_data = 32'hFC000000; // HALT instruction
-        i_du_inst_addr_wr = 32'd32; // Address to write instruction
+        i_du_inst_addr_wr = 32'd40; // Address to write instruction
         i_du_mem_addr = 8'h00; // Address to write instruction in debug memory
         i_du_reg_addr = 5'd8;
         i_du_write_en = 1; // Enable write for debug unit
@@ -531,7 +543,7 @@ module first_program();
 
         i_du_read_en = 1; // Enable read for debug unit
         i_clk_en = 1; // Enable clock signal
-        #100; // Wait for some time to observe the behavior
+        #1000; // Wait for some time to observe the behavior
         i_clk_en = 0; // Disable clock signal
         i_du_read_en = 0; // Disable read for debug unit
         #100; // Wait for some time to observe the behavior

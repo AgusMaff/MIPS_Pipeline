@@ -8,12 +8,15 @@ module TOP
     parameter NB_R_INT=341
 ) 
 (
-    input               clk       ,
-    input               reset     ,
-    input               uart_rx        ,
+    input               clock       ,
+    input               i_reset     ,
+    input               RsRx        ,
 
-    output              uart_tx        ,
-    output              [3:0] debugger_leds
+    output              RsTx        ,
+    output              start_led   ,
+    output              idle_led    ,
+    output              running_led ,
+    output              halt_led
 );
     wire clk_50mhz;
     wire halt_wire;
@@ -61,10 +64,10 @@ module TOP
      // Clock out ports
            .clk_out1(clk_50mhz),
      // Status and control signals
-           .reset(reset),
+           .reset(i_reset),
            .locked(),
     // Clock in ports
-           .clk_in1(clk)
+           .clk_in1(clock)
     );
 
     debug_unit #(
@@ -79,8 +82,8 @@ module TOP
     debug_unit
     (
         .i_du_clk(clk_50mhz),
-        .i_du_reset(reset),
-        .i_uart_rx_data_in(uart_rx),
+        .i_du_reset(i_reset),
+        .i_uart_rx_data_in(RsRx),
         .i_du_halt(halt_wire),
         .i_reg_data(reg_data_wire),
         .i_mem_data(mem_data_wire),
@@ -125,7 +128,7 @@ module TOP
         .i_m_wb_isJal(m_wb_isJal),
         .i_m_wb_pc_plus_8(m_wb_pc_plus_8),
 
-        .o_uart_tx_data_out(uart_tx),
+        .o_uart_tx_data_out(RsTx),
         .o_mips_inst_data(inst_to_load),
         .o_mips_inst_mem_addr_wr(addr_to_load),
         .o_mips_inst_mem_write_en(inst_mem_write_enable),
@@ -133,19 +136,19 @@ module TOP
         .o_mips_reset(reset_from_du),
         .o_du_reg_addr_sel(reg_addr_to_read),
         .o_du_mem_addr_sel(mem_addr_to_read), 
-        .o_idle_led(debugger_leds[0]), // LED indicating idle state
-        .o_start_led(debugger_leds[1]), // LED indicating start state
-        .o_running_led(debugger_leds[2]),
+        .o_idle_led(idle_led), // LED indicating idle state
+        .o_start_led(start_led), // LED indicating start state
+        .o_running_led(running_led),
         .o_step_mode(step_mode_wire),
         .o_clk_en(clk_enable) // Clock enable signal
     );
 
-    assign debugger_leds[3] = halt_wire;
+    assign halt_led = halt_wire;
 
     PIPELINE pipeline (
         .i_clk(clk_50mhz),
         .i_clk_en(clk_enable), // Habilitar señal de reloj
-        .i_reset(reset | reset_from_du), // Reset signal from debug unit
+        .i_reset(i_reset | reset_from_du), // Reset signal from debug unit
         .i_du_data(inst_to_load),
         .i_du_inst_addr_wr(addr_to_load),
         .i_du_mem_addr(mem_addr_to_read),

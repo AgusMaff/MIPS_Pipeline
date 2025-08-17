@@ -6,6 +6,6 @@ module SHFT2L_ID(
 );
 
     // Desplazar los 26 bits a la izquierda 2 posiciones
-    assign shifted_data = { shift, 2'b00 };
+    assign shifted_data = shift << 2;
 
 endmodule
