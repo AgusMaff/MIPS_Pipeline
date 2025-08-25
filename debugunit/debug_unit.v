@@ -287,8 +287,8 @@ always @(*) begin
         RUN: begin
             if (i_du_halt) begin
                 // Cuando termina la ejecución, empieza a enviar datos
-                next_counter = 0;
-                next_addr_inst = 0;
+                //next_counter = 0;
+                //next_addr_inst = 0;
                 next_state = IDLE;
             end
         end

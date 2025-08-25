@@ -11,29 +11,22 @@ module HAZARD_UNIT
     input        id_ex_mem_read,  //load operations   |memread_e writereg_m  regwrite_E  memread_m
     input        ex_regwrite,  //writereg_e
     input        m_memtoreg,
-    output       flush_idex,
+    input        branch_taken,
+    output       flush,
     output       stall
 );
 
-
-reg reg_flush;
 reg reg_stall;
 always @(*) begin
-    reg_flush = 1'b0;
     reg_stall = 1'b0;
     //read load data hazard
     if((id_ex_mem_read) && ((if_id_rs == id_ex_rt) || (if_id_rt == id_ex_rt)))
     begin
         reg_stall = 1'b1;
     end
+end
 
-    else if(branch && ((ex_regwrite && (ex_rd != 5'b00000) && ((ex_rd == if_id_rs) || (ex_rd == if_id_rt))) || (m_memtoreg && (m_rd != 5'b00000) && ((m_rd == if_id_rs) || (m_rd == if_id_rt)))))
-        begin
-            reg_flush = 1'b1;
-        end
-    end
-
-assign flush_idex = reg_flush;
+assign flush      = branch_taken;
 assign stall      = reg_stall;
   
 endmodule

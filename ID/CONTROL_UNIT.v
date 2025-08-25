@@ -22,6 +22,22 @@ module CONTROL_UNIT (
 );
 
     always @(*) begin
+        // Inicialización de señales
+        branch     = 1'b0;
+        is_beq     = 1'b0;
+        reg_dest   = 1'b0;
+        alu_src    = 1'b0;
+        alu_op     = 3'b000;
+        mem_read   = 1'b0;
+        mem_write  = 1'b0;
+        mem_to_reg = 1'b0;
+        reg_write  = 1'b0;
+        jump       = 1'b0;
+        isJal      = 1'b0; // No es JAL
+        jalSel     = 1'b0; // No es jalr
+        jumpSel    = 1'b0; // No es JR
+        bhw_type   = 3'b000; // Tipo de instrucción R
+        halt       = 1'b0; // No es HALT
         if (enable) begin
             case (op_code[5:3])
                 3'b000: begin 

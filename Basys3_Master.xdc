@@ -45,7 +45,7 @@ set_property -dict {PACKAGE_PIN A18 IOSTANDARD LVCMOS33} [get_ports RsTx]
 #set_property -dict { PACKAGE_PIN U3    IOSTANDARD LVCMOS33 } [get_ports {tx_led}]
 set_property -dict { PACKAGE_PIN P3    IOSTANDARD LVCMOS33 } [get_ports {start_led}] 
 set_property -dict { PACKAGE_PIN N3    IOSTANDARD LVCMOS33 } [get_ports {idle_led}] 
-set_property -dict { PACKAGE_PIN P1    IOSTANDARD LVCMOS33 } [get_ports {halt_led}] 
+#set_property -dict { PACKAGE_PIN P1    IOSTANDARD LVCMOS33 } [get_ports {halt_led}] 
 set_property -dict { PACKAGE_PIN L1    IOSTANDARD LVCMOS33 } [get_ports {running_led}]
 
 

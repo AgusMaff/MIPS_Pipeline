@@ -13,10 +13,9 @@ module TOP
     input               RsRx        ,
 
     output              RsTx        ,
-    output              start_led   ,
     output              idle_led    ,
-    output              running_led ,
-    output              halt_led
+    output              start_led   ,
+    output              running_led
 );
     wire clk_50mhz;
     wire halt_wire;
@@ -75,7 +74,7 @@ module TOP
         .NB_R_INT (NB_R_INT),
         .DBIT     (8  ),
         .SB_TICK  (16 ),
-        .DVSR     (163), //50mhz 50mhz/(19200*16)
+        .DVSR     (163), //50mhz/(19200*16)
         .DVSR_BITS (8  ),
         .FIFO_W   (5  )
     )
@@ -142,8 +141,6 @@ module TOP
         .o_step_mode(step_mode_wire),
         .o_clk_en(clk_enable) // Clock enable signal
     );
-
-    assign halt_led = halt_wire;
 
     PIPELINE pipeline (
         .i_clk(clk_50mhz),

@@ -49,7 +49,7 @@ module ID (
     output wire        o_jumpSel, // Output jump select signal for JR
     output wire [31:0] o_pc_plus_8, // PC + 8 for JAL
     output wire [2:0]  o_bhw_type,
-    output wire        o_flush_idex,
+    output wire        o_flush,
     output wire        o_stall,
     output wire        o_halt,
     output wire [31:0] o_du_reg_data
@@ -116,16 +116,17 @@ module ID (
         .id_ex_mem_read(i_id_ex_mem_read),
         .ex_regwrite(i_ex_reg_write),
         .m_memtoreg(i_m_memtoreg),
-        .flush_idex(o_flush_idex),
+        .branch_taken(o_pc_src),
+        .flush(o_flush),
         .stall(o_stall)
     );
 
     FORWARDING_UNIT_ID forwarding_unit_id (
         .if_id_rs(i_rs),
         .if_id_rt(i_rt),
-        .ex_m_rd(i_ex_m_rd),
+        .ex_m_rd(i_ex_rd),
         .m_rd(i_m_rd),
-        .ex_m_reg_write(i_ex_m_reg_write),
+        .ex_m_reg_write(i_ex_reg_write),
         .m_reg_write(i_m_reg_write),
         .m_mem_read(i_m_mem_read),
         .forward_a(forward_a),

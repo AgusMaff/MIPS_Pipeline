@@ -23,7 +23,6 @@ module ID_EX (
     input  wire [31:0] id_ex_pc_plus_8, // PC + 8 para la etapa ID/EX
     input  wire [2:0]  id_bhw_type,
     input  wire        id_ex_halt,
-    input  wire        id_flush,
     input  wire        id_stall, 
 
     output reg [31:0] ex_dato_1,
@@ -70,7 +69,7 @@ module ID_EX (
             ex_jalSel <= 1'b0; // Resetea el bit de control para jalr
             ex_pc_plus_8 <= 32'b0; // Resetea el PC + 8
         end 
-            else if (id_flush || id_stall) begin
+        else if (id_stall && clk_en) begin
             // Inserta NOP en EX
             ex_dato_1 <= 32'b0;
             ex_dato_2 <= 32'b0;

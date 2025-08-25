@@ -32,7 +32,7 @@ FUNCTION_CODES = {
     "ADD": 0x20, "SUB": 0x22, "AND": 0x24, "OR": 0x25, "XOR": 0x26, "NOR": 0x27, "SLT": 0x2A,
     "ADDU": 0x21, "SUBU": 0x23, "SLTU": 0x2B, "SLL": 0x00, "SRL": 0x02, "SRA": 0x03,
     "SLLV": 0x04, "SRLV": 0x06, "SRAV": 0x07,
-    "JALR": 0x09, "JR": 0x08
+    "JALR": 0x09, "JR": 0x41
 }
 
 REGS = {
@@ -93,17 +93,12 @@ def encode_instruction(mnemonic, operands):
             target_addr = 0
         
         # Verificar rango de dirección (26 bits = 0 a 67,108,863)
-        # En MIPS, la dirección se desplaza 2 bits a la derecha porque las instrucciones
-        # están alineadas a 4 bytes, así que el rango efectivo es 0 a 268,435,452
-        max_addr = (1 << 28) - 4  # 268,435,452
+        max_addr = (1 << 26) - 1  # ✅ CAMBIADO: 67,108,863 (26 bits)
         if target_addr < 0 or target_addr > max_addr:
             raise ValueError(f"Dirección {target_addr} fuera del rango válido (0 - {max_addr})")
         
-        if target_addr % 4 != 0:
-            raise ValueError(f"Dirección {target_addr} debe ser múltiplo de 4")
-        
-        # Convertir dirección a campo de 26 bits (dividir por 4)
-        jump_addr = (target_addr >> 2) & 0x3FFFFFF  # 26 bits
+        # ✅ CAMBIADO: Usar la dirección directamente, sin dividir por 4
+        jump_addr = target_addr & 0x3FFFFFF  # 26 bits
         
         instr = (opcode << 26) | jump_addr
         print(f"{mnemonic} codificado: opcode=0x{opcode:02X}, target_addr={target_addr}, jump_addr=0x{jump_addr:07X}")
