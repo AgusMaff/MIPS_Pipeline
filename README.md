@@ -622,7 +622,3 @@ El proyecto incluye testbenches completos para:
 ## Contribuciones
 
 Este proyecto es desarrollado como parte de un curso de arquitectura de computadores. Las contribuciones son bienvenidas a través de pull requests.
-
-## Licencia
-
-Este proyecto está bajo licencia MIT. Ver archivo LICENSE para más detalles.
